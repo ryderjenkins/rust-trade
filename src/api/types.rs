@@ -2,7 +2,13 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use rust_decimal::Decimal;
 
+#[derive(Debug, Deserialize)]
+pub struct OrderBookQuery {
+    pub limit: Option<u32>,
+}
+
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ApiResponse<T> {
     pub success: bool,
     pub data: Option<T>,

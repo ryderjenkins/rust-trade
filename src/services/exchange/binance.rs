@@ -1,7 +1,6 @@
 use super::types::*;
 use crate::data::market_data::MarketDataPoint;
 use chrono::{DateTime, TimeZone, Utc};
-use futures_util::StreamExt;
 use reqwest::{Client, Url};
 use rust_decimal::Decimal;
 use serde_json::Value;
@@ -9,6 +8,8 @@ use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio_tungstenite::connect_async;
 use tracing::{debug, error, info};
+use futures_util::{SinkExt, StreamExt};  
+use tokio_tungstenite::tungstenite::Message;  
 
 pub struct BinanceSpot {
     client: Client,
@@ -28,10 +29,78 @@ impl BinanceSpot {
         Self {
             client,
             base_url: Url::parse("https://api.binance.com").unwrap(),
-            ws_url: Url::parse("wss://stream.binance.com:9443/ws").unwrap(),
+            ws_url: Url::parse("wss://stream.binance.com:9443/ws").unwrap(),  // 修正 WebSocket URL
             api_key,
             api_secret,
         }
+    }
+
+    async fn subscribe_market_data(
+        &self,
+        symbols: &[String],
+        callback: Box<dyn Fn(MarketDataPoint) + Send + Sync>,
+    ) -> Result<(), ExchangeError> {
+        // 格式化交易对：把 BTCUSDT 转换为 btcusdt@ticker
+        let symbol = symbols[0].to_lowercase();
+        let ws_url = format!("wss://stream.binance.com:9443/ws/{}", symbol);
+        
+        debug!("Connecting to WebSocket URL: {}", ws_url);
+    
+        // 连接 WebSocket
+        let (ws_stream, _) = connect_async(&ws_url)
+            .await
+            .map_err(|e| ExchangeError::NetworkError(e.to_string()))?;
+            
+        info!("WebSocket connected successfully");
+        
+        // 分离读写流
+        let (write, mut read) = ws_stream.split();
+    
+        // 启动接收消息的任务
+        tokio::spawn(async move {
+            while let Some(msg) = read.next().await {
+                match msg {
+                    Ok(msg) => {
+                        debug!("Received raw message: {}", msg);
+                        if let Ok(data) = serde_json::from_str::<Value>(&msg.to_string()) {
+                            // 提取价格数据
+                            let market_data = MarketDataPoint {
+                                timestamp: Utc::now(),
+                                symbol: symbol.clone(),
+                                price: data["p"].as_str()
+                                    .unwrap_or("0")
+                                    .parse()
+                                    .unwrap_or(0.0),
+                                volume: data["q"].as_str()
+                                    .unwrap_or("0")
+                                    .parse()
+                                    .unwrap_or(0.0),
+                                high: data["h"].as_str()
+                                    .unwrap_or("0")
+                                    .parse()
+                                    .unwrap_or(0.0),
+                                low: data["l"].as_str()
+                                    .unwrap_or("0")
+                                    .parse()
+                                    .unwrap_or(0.0),
+                                open: data["o"].as_str()
+                                    .unwrap_or("0")
+                                    .parse()
+                                    .unwrap_or(0.0),
+                                close: data["c"].as_str()
+                                    .unwrap_or("0")
+                                    .parse()
+                                    .unwrap_or(0.0),
+                            };
+                            callback(market_data);
+                        }
+                    }
+                    Err(e) => error!("WebSocket error: {}", e),
+                }
+            }
+        });
+    
+        Ok(())
     }
     
     async fn make_request(&self, endpoint: &str, params: Option<Vec<(&str, String)>>) 

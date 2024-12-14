@@ -55,9 +55,9 @@ async fn get_ticker(
 async fn get_orderbook(
     State(context): State<Arc<ApiContext>>,
     Path(symbol): Path<String>,
-    Query(limit): Query<Option<u32>>,
+    Query(params): Query<OrderBookQuery>, 
 ) -> Result<Json<ApiResponse<OrderBookResponse>>, StatusCode> {
-    let limit = limit.unwrap_or(20);
+    let limit = params.limit.unwrap_or(20); 
     
     match context.exchange.get_orderbook(&symbol, limit).await {
         Ok(orderbook) => {
