@@ -1,4 +1,5 @@
 mod config;
+mod data;
 
 use dotenv::dotenv;
 use tracing::{info, Level};
@@ -20,5 +21,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Database URL: {}", settings.database.url);
     info!("API Port: {}", settings.api.port);
 
+    // 初始化数据库连接
+    let database = data::database::Database::new(&settings.database).await?;
+
+    // 测试数据库连接
+    database.check_connection().await?;
+    
     Ok(())
 }
