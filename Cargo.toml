@@ -1,5 +1,5 @@
 [package]
-name = "rust-trade"
+name = "rust_trade"
 version = "0.1.0"
 edition = "2021"
 
@@ -17,3 +17,5 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["serde", "v4"] }
 anyhow = "1.0"
 thiserror = "1.0"
+rust_decimal = { version = "1.32", features = ["serde"] }
+async-trait = "0.1"

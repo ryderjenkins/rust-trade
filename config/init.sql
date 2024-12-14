@@ -2,7 +2,7 @@ DROP TABLE IF EXISTS market_data;
 
 CREATE TABLE market_data (
     id BIGSERIAL PRIMARY KEY,
-    timestam TIMESTAMPTZ NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL,
     symbol VARCHAR(20) NOT NULL,
     price DOUBLE PRECISION NOT NULL,
     volume DOUBLE PRECISION NOT NULL,
