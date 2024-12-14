@@ -16,30 +16,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Starting Rust Trade System...");
 
-    // 添加调试信息
-    Ok(match config::Settings::new() {
-        Ok(settings) => {
-            info!("Configuration loaded successfully");
-            info!("Database URL: {}", settings.database.url);
-            info!("API Port: {}", settings.api.port);
-            Ok(())
-        }
-        Err(e) => {
-            info!("Failed to load configuration: {:?}", e);
-            Err(Box::new(e))
-        }
-    }?)
+    let settings = config::Settings::new()?;
+    info!("Configuration loaded successfully");
+    info!("Database URL: {}", settings.database.url);
+    info!("API Port: {}", settings.api.port);
 
-    // match config::Settings::new() {
-    //     Ok(settings) => {
-    //         info!("Configuration loaded successfully");
-    //         info!("Database URL: {}", settings.database.url);
-    //         info!("API Port: {}", settings.api.port);
-    //         Ok(())
-    //     }
-    //     Err(e) => {
-    //         info!("Failed to load configuration: {:?}", e);
-    //         Err(Box::new(e))
-    //     }
-    // }
+    Ok(())
 }
