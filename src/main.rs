@@ -1,5 +1,4 @@
 mod config;
-mod error;
 
 use dotenv::dotenv;
 use tracing::{info, Level};
