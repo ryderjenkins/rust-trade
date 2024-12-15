@@ -29,78 +29,10 @@ impl BinanceSpot {
         Self {
             client,
             base_url: Url::parse("https://api.binance.com").unwrap(),
-            ws_url: Url::parse("wss://stream.binance.com:9443/ws").unwrap(),  // 修正 WebSocket URL
+            ws_url: Url::parse("wss://stream.binance.com:9443").unwrap(),
             api_key,
             api_secret,
         }
-    }
-
-    async fn subscribe_market_data(
-        &self,
-        symbols: &[String],
-        callback: Box<dyn Fn(MarketDataPoint) + Send + Sync>,
-    ) -> Result<(), ExchangeError> {
-        // 格式化交易对：把 BTCUSDT 转换为 btcusdt@ticker
-        let symbol = symbols[0].to_lowercase();
-        let ws_url = format!("wss://stream.binance.com:9443/ws/{}", symbol);
-        
-        debug!("Connecting to WebSocket URL: {}", ws_url);
-    
-        // 连接 WebSocket
-        let (ws_stream, _) = connect_async(&ws_url)
-            .await
-            .map_err(|e| ExchangeError::NetworkError(e.to_string()))?;
-            
-        info!("WebSocket connected successfully");
-        
-        // 分离读写流
-        let (write, mut read) = ws_stream.split();
-    
-        // 启动接收消息的任务
-        tokio::spawn(async move {
-            while let Some(msg) = read.next().await {
-                match msg {
-                    Ok(msg) => {
-                        debug!("Received raw message: {}", msg);
-                        if let Ok(data) = serde_json::from_str::<Value>(&msg.to_string()) {
-                            // 提取价格数据
-                            let market_data = MarketDataPoint {
-                                timestamp: Utc::now(),
-                                symbol: symbol.clone(),
-                                price: data["p"].as_str()
-                                    .unwrap_or("0")
-                                    .parse()
-                                    .unwrap_or(0.0),
-                                volume: data["q"].as_str()
-                                    .unwrap_or("0")
-                                    .parse()
-                                    .unwrap_or(0.0),
-                                high: data["h"].as_str()
-                                    .unwrap_or("0")
-                                    .parse()
-                                    .unwrap_or(0.0),
-                                low: data["l"].as_str()
-                                    .unwrap_or("0")
-                                    .parse()
-                                    .unwrap_or(0.0),
-                                open: data["o"].as_str()
-                                    .unwrap_or("0")
-                                    .parse()
-                                    .unwrap_or(0.0),
-                                close: data["c"].as_str()
-                                    .unwrap_or("0")
-                                    .parse()
-                                    .unwrap_or(0.0),
-                            };
-                            callback(market_data);
-                        }
-                    }
-                    Err(e) => error!("WebSocket error: {}", e),
-                }
-            }
-        });
-    
-        Ok(())
     }
     
     async fn make_request(&self, endpoint: &str, params: Option<Vec<(&str, String)>>) 
@@ -141,6 +73,28 @@ impl BinanceSpot {
     fn parse_decimal(value: &str) -> Result<Decimal, ExchangeError> {
         value.parse()
             .map_err(|_| ExchangeError::ApiError("Invalid decimal format".to_string()))
+    }
+
+    fn parse_ticker_message(&self, data: &serde_json::Value) -> Option<MarketDataPoint> {
+        // 提取必要的字段
+        let symbol = data.get("s")?.as_str()?;
+        let price = data.get("c")?.as_str()?;
+        let volume = data.get("v")?.as_str()?;
+        let high = data.get("h")?.as_str()?;
+        let low = data.get("l")?.as_str()?;
+        let open = data.get("o")?.as_str()?;
+
+        // 解析数据
+        Some(MarketDataPoint {
+            symbol: symbol.to_string(),
+            price: price.parse().ok()?,
+            volume: volume.parse().ok()?,
+            timestamp: Utc::now(),
+            high: high.parse().ok()?,
+            low: low.parse().ok()?,
+            open: open.parse().ok()?,
+            close: price.parse().ok()?,
+        })
     }
 }
 
@@ -259,45 +213,92 @@ impl Exchange for BinanceSpot {
         symbols: &[String],
         callback: Box<dyn Fn(MarketDataPoint) + Send + Sync>,
     ) -> Result<(), ExchangeError> {
-        let streams: Vec<String> = symbols
+        // 构建正确的 stream names
+        let stream_names: Vec<String> = symbols
             .iter()
-            .map(|symbol| format!("{}@ticker", symbol.to_lowercase()))
+            .map(|s| format!("{}@ticker", s.to_lowercase()))
             .collect();
-            
-        let ws_url = format!("{}/stream?streams={}", self.ws_url, streams.join("/"));
-        
-        let (ws_stream, _) = connect_async(ws_url)
+
+        // 正确构建 WebSocket URL，避免重复的 'ws' 路径
+        let ws_url = if stream_names.len() == 1 {
+            // 单个交易对格式：wss://stream.binance.com:9443/ws/btcusdt@ticker
+            format!("wss://stream.binance.com:9443/ws/{}", stream_names[0])
+        } else {
+            // 多个交易对格式：wss://stream.binance.com:9443/stream?streams=btcusdt@ticker/ethusdt@ticker
+            format!("wss://stream.binance.com:9443/stream?streams={}", stream_names.join("/"))
+        };
+
+        info!("Connecting to Binance WebSocket: {}", ws_url);
+
+        // 建立 WebSocket 连接
+        let (ws_stream, _response) = connect_async(&ws_url)
             .await
-            .map_err(|e| ExchangeError::NetworkError(e.to_string()))?;
-            
-        let (write, mut read) = ws_stream.split();
-        
-        tokio::spawn(async move {
-            while let Some(msg) = read.next().await {
-                match msg {
-                    Ok(msg) => {
-                        if let Ok(data) = serde_json::from_str::<Value>(&msg.to_string()) {
-                            if let Some(ticker) = data.get("data") {
-                                let symbol = ticker["s"].as_str().unwrap().to_string();
-                                let market_data = MarketDataPoint {
-                                    timestamp: Utc::now(),
-                                    symbol: symbol,
-                                    price: ticker["c"].as_str().unwrap().parse().unwrap(),
-                                    volume: ticker["v"].as_str().unwrap().parse().unwrap(),
-                                    high: ticker["h"].as_str().unwrap().parse().unwrap(),
-                                    low: ticker["l"].as_str().unwrap().parse().unwrap(),
-                                    open: ticker["o"].as_str().unwrap().parse().unwrap(),
-                                    close: ticker["c"].as_str().unwrap().parse().unwrap(),
+            .map_err(|e| ExchangeError::NetworkError(format!("WebSocket connection failed: {}", e)))?;
+
+        info!("WebSocket connection established successfully");
+
+        let (mut write, mut read) = ws_stream.split();
+
+        // 对于多个交易对，发送订阅消息
+        if stream_names.len() > 1 {
+            let subscribe_msg = serde_json::json!({
+                "method": "SUBSCRIBE",
+                "params": stream_names,
+                "id": 1
+            });
+
+            write
+                .send(Message::Text(subscribe_msg.to_string()))
+                .await
+                .map_err(|e| ExchangeError::NetworkError(format!("Failed to send subscription: {}", e)))?;
+
+            info!("Subscription message sent: {}", subscribe_msg);
+        }
+
+        // 处理接收到的消息
+        while let Some(msg_result) = read.next().await {
+            match msg_result {
+                Ok(msg) => {
+                    match msg {
+                        Message::Text(text) => {
+                            info!("Received market data: {}", text);
+                            debug!("Received message: {}", text);
+                            
+                            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&text) {
+                                // 处理市场数据
+                                let ticker_data = if let Some(stream_data) = data.get("data") {
+                                    stream_data // 多流格式
+                                } else {
+                                    &data // 单流格式
                                 };
-                                callback(market_data);
+
+                                if let Some(market_data) = self.parse_ticker_message(ticker_data) {
+                                    info!("Successfully parsed market data for {}: price={}", 
+                                            market_data.symbol, market_data.price);
+                                    callback(market_data);
+                                }
                             }
                         }
+                        Message::Ping(data) => {
+                            write
+                                .send(Message::Pong(data))
+                                .await
+                                .map_err(|e| ExchangeError::NetworkError(format!("Failed to send pong: {}", e)))?;
+                        }
+                        Message::Close(frame) => {
+                            error!("WebSocket closed by server: {:?}", frame);
+                            return Err(ExchangeError::NetworkError("Connection closed by server".into()));
+                        }
+                        _ => {}
                     }
-                    Err(e) => error!("WebSocket error: {}", e),
+                }
+                Err(e) => {
+                    error!("WebSocket error: {}", e);
+                    return Err(ExchangeError::NetworkError(e.to_string()));
                 }
             }
-        });
-        
+        }
+
         Ok(())
     }
 }

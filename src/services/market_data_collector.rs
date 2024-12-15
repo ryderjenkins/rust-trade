@@ -88,8 +88,8 @@ impl MarketDataCollector {
             while let Some(data) = data_rx.recv().await {
                 match market_data_manager.store_market_data(&data).await {
                     Ok(()) => {
-                        debug!(
-                            "Stored market data: symbol={}, price={}, volume={}", 
+                        info!(
+                            "Successfully stored market data: symbol={}, price={}, volume={}", 
                             data.symbol, data.price, data.volume
                         );
                     }
@@ -155,7 +155,7 @@ mod tests {
         let collector = Arc::new(MarketDataCollector::new(
             Box::new(exchange),
             market_data_manager,
-            vec!["btcusdt@ticker".to_string()],
+            vec!["btcusdt".to_string()],
         ));
 
         info!("Starting data collection...");
