@@ -1,7 +1,7 @@
 # Trading System API Documentation
 
 ## Overview
-This document describes the REST API endpoints for the trading system. The API provides access to market data including real-time tickers, orderbook information, and historical kline data.
+This document describes the REST API endpoints for the trading system. The API provides access to market data including real-time tickers, orderbook information, recent trades, and historical kline data.
 
 ## Base URL
 ```
@@ -74,6 +74,33 @@ Retrieves the current orderbook for a specific symbol.
 }
 ```
 
+### Get Recent Trades
+Retrieves the most recent trades for a specific symbol.
+
+**Endpoint:** `GET /market/trades/{symbol}`
+
+**Parameters:**
+- `symbol` (path parameter, required): Trading pair symbol (e.g., "BTCUSDT")
+- `limit` (query parameter, optional): Number of trades to return. Default: 20
+
+**Response:**
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "symbol": "string",
+            "timestamp": "ISO8601 timestamp",
+            "price": "decimal",
+            "quantity": "decimal",
+            "is_buyer_maker": boolean
+        },
+        ...
+    ],
+    "error": null
+}
+```
+
 ### Get Klines (Candlestick Data)
 Retrieves historical candlestick data for a specific symbol and time interval.
 
@@ -129,6 +156,7 @@ The API uses standard HTTP status codes and includes error details in the respon
 - All timestamps are in ISO8601 format (e.g., "2024-12-15T10:00:00Z")
 - All decimal numbers are strings to preserve precision
 - Quantities and prices use decimal format with up to 8 decimal places
+- Boolean values are represented as true/false
 
 ## Best Practices
 1. Always specify the symbol in uppercase
@@ -136,6 +164,7 @@ The API uses standard HTTP status codes and includes error details in the respon
 3. Include reasonable limit parameters to avoid overloading
 4. Handle rate limits appropriately
 5. Implement proper error handling for failed requests
+6. Monitor response times for large data requests
 
 ## Future Improvements
 1. Authentication system for private endpoints
@@ -143,3 +172,4 @@ The API uses standard HTTP status codes and includes error details in the respon
 3. Additional market data endpoints
 4. Enhanced error reporting
 5. Pagination for large datasets
+6. Aggregated trade data endpoints

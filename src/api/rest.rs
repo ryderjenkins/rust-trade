@@ -5,7 +5,7 @@ use axum::{
     Router,
 };
 use std::sync::Arc;
-use crate::services::exchange::types::{Exchange, ExchangeError};
+use crate::services::exchange::types::{Exchange, ExchangeError, RecentTradesQuery, Trade};
 use super::types::*;
 use crate::data::market_data::MarketDataPoint;
 
@@ -18,6 +18,7 @@ pub fn create_router(context: Arc<ApiContext>) -> Router {
         .route("/api/v1/market/ticker/:symbol", axum::routing::get(get_ticker))
         .route("/api/v1/market/orderbook/:symbol", axum::routing::get(get_orderbook))
         .route("/api/v1/market/klines", axum::routing::get(get_klines))
+        .route("/api/v1/market/trades/:symbol", axum::routing::get(get_recent_trades))
         .with_state(context)
 }
 
@@ -103,6 +104,31 @@ async fn get_klines(
             Ok(Json(ApiResponse {
                 success: true,
                 data: Some(klines),
+                error: None,
+            }))
+        }
+        Err(e) => {
+            Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                error: Some(e.to_string()),
+            }))
+        }
+    }
+}
+
+async fn get_recent_trades(
+    State(context): State<Arc<ApiContext>>,
+    Path(symbol): Path<String>,
+    Query(params): Query<RecentTradesQuery>,
+) -> Result<Json<ApiResponse<Vec<Trade>>>, StatusCode> {
+    let limit = params.limit.unwrap_or(20);
+    
+    match context.exchange.get_recent_trades(&symbol, limit).await {
+        Ok(trades) => {
+            Ok(Json(ApiResponse {
+                success: true,
+                data: Some(trades),
                 error: None,
             }))
         }

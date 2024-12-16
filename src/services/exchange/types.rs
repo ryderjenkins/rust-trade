@@ -51,6 +51,11 @@ pub struct Trade {
     pub is_buyer_maker: bool,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct RecentTradesQuery {
+    pub limit: Option<u32>,
+}
+
 #[async_trait::async_trait]
 pub trait Exchange: Send + Sync {
     /// 获取交易对的最新行情

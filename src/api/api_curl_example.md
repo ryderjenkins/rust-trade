@@ -58,7 +58,43 @@ Expected response:
 }
 ```
 
-## 3. Get K-line data
+## 3. Get recent trades data
+
+### Get latest trades (default 20 trades)
+```bash
+curl "http://localhost:8080/api/v1/market/trades/BTCUSDT"
+```
+
+### Get specific number of trades
+```bash
+curl "http://localhost:8080/api/v1/market/trades/BTCUSDT?limit=10"
+```
+
+Expected response:
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "symbol": "BTCUSDT",
+            "timestamp": "2024-12-15T10:30:07Z",
+            "price": "42156.85",
+            "quantity": "0.1234",
+            "is_buyer_maker": true
+        },
+        {
+            "symbol": "BTCUSDT",
+            "timestamp": "2024-12-15T10:30:06Z",
+            "price": "42156.80",
+            "quantity": "0.5678",
+            "is_buyer_maker": false
+        }
+    ],
+    "error": null
+}
+```
+
+## 4. Get K-line data
 
 ### Get the latest K-line data
 ```bash
@@ -137,14 +173,14 @@ curl "http://localhost:8080/api/v1/market/klines?symbol=BTCUSDT&interval=1d&limi
 ## Common Problems Troubleshooting
 
 1. If you encounter a connection error, please check:
-- Is the service running?
-- Is the port number correct?
-- Firewall settings
+   - Is the service running?
+   - Is the port number correct?
+   - Firewall settings
 
 2. If you receive a 404 error, please check:
-- Is the URL path correct?
-- Is the transaction pair name correct (case sensitive)
+   - Is the URL path correct?
+   - Is the transaction pair name correct (case sensitive)
 
 3. If the data is abnormal, please check:
-- Is the time parameter format correct
-- Is the limit parameter within a reasonable range
+   - Is the time parameter format correct
+   - Is the limit parameter within a reasonable range

@@ -197,7 +197,7 @@ impl Exchange for BinanceSpot {
                 Ok(MarketDataPoint {
                     timestamp: Utc.timestamp_millis_opt(kline[0].as_i64().unwrap()).unwrap(),
                     symbol: symbol.to_string(),
-                    price: kline[4].as_str().unwrap().parse().unwrap(),  // 收盘价作为当前价格
+                    price: kline[4].as_str().unwrap().parse().unwrap(),
                     volume: kline[5].as_str().unwrap().parse().unwrap(),
                     high: kline[2].as_str().unwrap().parse().unwrap(),
                     low: kline[3].as_str().unwrap().parse().unwrap(),
