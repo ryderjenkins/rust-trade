@@ -1,137 +1,117 @@
-# Rust trading system project summary
+# Rust Trading System Project Summary
 
-## Project architecture
-
+## Project Architecture
 ```
 rust-trade/
-├── Cargo.toml // Project dependency configuration
-├── config/
-│ ├── default.toml // Basic configuration file
-│ └── production.toml // Production environment configuration
+├── Cargo.toml                      // Project dependency configuration
+├── config/                         
+│   ├── default.toml               // Basic configuration file
+│   └── production.toml            // Production environment configuration
 ├── src/
-│ ├── main.rs // Application entry (supports both server and backtesting modes)
-│ │
-│ ├── config.rs // Configuration management
-│ │
-│ ├── data/ // Data layer
-│ │ ├── mod.rs // Module export
-│ │ ├── database.rs // Database connection management
-│ │ └── market_data.rs // Market data management
-│ │
-│ ├── services/ // Service layer
-│ │ ├── mod.rs
-│ │ └── exchange/ // Exchange service
-│ │ ├── mod.rs
-│ │ ├── types.rs // Exchange interface definition
-│ │ ├── binance.rs // Binance implementation
-│ │ └── market_data_collector.rs // Data collection service
-│ │
-│ ├── api/ // API service layer
-│ │ ├── mod.rs
-│ │ ├── types.rs // API data type
-│ │ └── rest.rs // REST interface implementation
-│ │
-│ └── backtest/ // Backtest system
-│ ├── mod.rs
-│ ├── types.rs // Backtest related data structure
-│ ├── engine/ // Backtest engine
-│ │ ├── mod.rs
-│ │ ├── engine.rs // Core backtest logic
-│ │ └── executor.rs // Order Executor
-│ └── strategy/ // Strategy module
-│ ├── mod.rs
-│ ├── base.rs // Strategy interface definition
-│ └── sma_cross.rs // Sample strategy implementation
+│   ├── main.rs                    // Application entry with server, backtest and AI modes
+│   │
+│   ├── config.rs                  // Configuration management
+│   │
+│   ├── data/                      // Data layer
+│   │   ├── mod.rs                
+│   │   ├── database.rs           // Database connection management
+│   │   └── market_data.rs        // Market data management
+│   │
+│   ├── services/                  // Service layer
+│   │   ├── mod.rs
+│   │   └── exchange/             // Exchange service
+│   │       ├── mod.rs
+│   │       ├── types.rs          // Exchange interface definition
+│   │       ├── binance.rs        // Binance implementation
+│   │       └── market_data_collector.rs  // Data collection service
+│   │
+│   ├── api/                      // API service layer
+│   │   ├── mod.rs
+│   │   ├── types.rs             // API data types
+│   │   └── rest.rs              // REST interface implementation
+│   │
+│   ├── backtest/                 // Backtest system
+│   │   ├── mod.rs
+│   │   ├── types.rs             // Backtest related data structures
+│   │   ├── engine/              // Backtest engine
+│   │   │   ├── mod.rs
+│   │   │   ├── engine.rs        // Core backtest logic
+│   │   │   └── executor.rs      // Order executor
+│   │   └── strategy/            // Strategy module
+│   │       ├── mod.rs
+│   │       ├── base.rs          // Strategy interface definition
+│   │       └── sma_cross.rs     // Moving average strategy
+│   │
+│   └── ai/                      // AI Integration - NEW
+│       ├── mod.rs
+│       └── llm/                 // LLM Strategy Implementation
+│           ├── mod.rs
+│           ├── strategy_generator.rs  // LLM strategy generator
+│           ├── types.rs         // LLM types
+│           └── risk.rs          // Risk management
 ```
 
-## Implemented features
+## Implemented Features
 
-### 1. Data layer
+### 1. Data Layer
 - [x] Database connection management
 - [x] Market data storage and query
 - [x] VWAP calculation
 - [x] Historical data cleaning
 - [x] Efficient data indexing
 
-### 2. Exchange integration
+### 2. Exchange Integration
 - [x] Exchange trait interface definition
 - [x] Binance REST API implementation
 - [x] WebSocket real-time data subscription
 - [x] Market data collector
 
-### 3. API service
+### 3. API Service
 - [x] REST API framework (based on axum)
 - [x] Market data query interface
 - [x] Order book query
 - [x] K-line data query
 
-### 4. Backtesting system
+### 4. Backtesting System
 - [x] Backtesting engine core
 - [x] Order execution simulation
 - [x] Portfolio management
 - [x] Basic strategy framework
-- [x] Moving average crossover strategy example
+- [x] Moving average crossover strategy
+- [x] Performance metrics calculation
 
-### 5. System infrastructure
+### 5. System Infrastructure
 - [x] Configuration management
 - [x] Log system
 - [x] Error handling
 - [x] Graceful shutdown
 - [x] Command line parameter support
 
-## Core function flow
+### 6. AI Integration (NEW)
+- [x] LLM strategy framework
+- [x] OpenAI API integration
+- [x] Market analysis generation
+- [x] Risk management system
+- [x] Position sizing based on AI signals
 
-1. **Real-time trading mode**
+## Core Function Flows
+
+1. **Real-time Trading Mode**
 ```
 Market data -> WebSocket subscription -> Data collector -> Database storage -> API access
 ```
 
-2. **Backtesting mode**
+2. **Traditional Backtesting Mode**
 ```
 Historical data -> Backtesting engine -> Strategy execution -> Order simulation -> Result analysis
 ```
 
-## Development suggestions
+3. **AI-Powered Backtesting Mode**
+```
+Historical data -> LLM Analysis -> Signal Generation -> Risk Assessment -> Order Execution -> Performance Analysis
+```
 
-### 1. Functional improvement
-- [ ] Implement support for more exchanges
-- [ ] Add more technical indicators
-- [ ] Develop more trading strategies
-- [ ] Implement strategy backtesting performance evaluation
-- [ ] Add risk management module
-
-### 2. Performance optimization
-- [ ] Implement data cache layer
-- [ ] Optimize database query
-- [ ] Add data preloading
-- [ ] Implement parallel backtesting
-
-### 3. Backtesting system enhancement
-- [ ] Add more performance indicators (Sharp ratio, Sortino ratio, etc.)
-- [ ] Implement transaction fee model
-- [ ] Support multi-product backtesting
-- [ ] Add backtesting result visualization
-
-### 4. System monitoring
-- [ ] Add system health check
-- [ ] Implement performance monitoring
-- [ ] Add alarm system
-- [ ] Implement monitoring panel
-
-### 5. User interface
-- [ ] Develop Web management interface
-- [ ] Implement backtesting result visualization
-- [ ] Add strategy editor
-- [ ] Implement real-time monitoring interface
-
-### 6. AI integration
-- [ ] Implement machine learning feature engineering
-- [ ] Integrate deep learning models
-- [ ] Add strategy optimizer
-- [ ] Implement automated strategy generation
-
-## Project dependencies
-
+## Project Dependencies
 ```toml
 [dependencies]
 tokio = { version = "1.0", features = ["full"] }
@@ -155,23 +135,85 @@ async-trait = "0.1"
 axum = "0.7"
 tower = "0.4"
 ta = "0.5" 
+async-openai = "0.13"
 clap = { version = "4.4", features = ["derive"] }
 tower-http = { version = "0.5", features = ["trace"] }
 ```
 
-## Development ideas
+## Known Issues and Limitations
 
-1. **Short-term goals**
-- Improve the performance indicator calculation of the backtesting system
-- Add basic backtesting result visualization
-- Implement more basic trading strategies
+### 1. LLM Strategy Implementation (NEW)
+- [ ] Async handling in backtest mode needs improvement
+- [ ] API response timing issues
+- [ ] Thread synchronization optimization needed
+- [ ] Response timeout handling required
 
-2. **Medium-term goals**
-- Develop risk management modules
-- Implement data caching layer
-- Add system monitoring infrastructure
+### 2. Risk Management (NEW)
+- [ ] More sophisticated risk metrics needed
+- [ ] Dynamic position sizing improvements
+- [ ] Better integration with market conditions
 
-3. **Long-term goals**
-- Develop a web management interface
-- Integrate machine learning functions
-- Implement automated strategy optimization
+## Development Roadmap
+
+### 1. Short-term Goals
+- [ ] Fix LLM strategy async issues
+- [ ] Implement API response caching
+- [ ] Add timeout and retry mechanisms
+- [ ] Improve risk management integration
+
+### 2. Medium-term Goals
+- [ ] Add more AI strategy variants
+- [ ] Implement strategy combination framework
+- [ ] Develop automated strategy optimization
+- [ ] Add performance visualization
+
+### 3. Long-term Goals
+- [ ] Implement real-time AI trading
+- [ ] Develop hybrid strategy system
+- [ ] Add machine learning models
+- [ ] Create strategy marketplace
+
+## Usage Examples
+
+### 1. Traditional Backtest
+```bash
+cargo run -- backtest --symbol BTCUSDT --days 30
+```
+
+### 2. LLM Strategy Backtest
+```bash
+cargo run -- llm-backtest --symbol BTCUSDT --days 1
+```
+
+### 3. Start Trading Server
+```bash
+cargo run -- server
+```
+
+## Environment Requirements
+
+### Required Environment Variables
+```bash
+DATABASE_URL=postgresql://user:password@localhost/dbname
+OPENAI_KEY=your-openai-api-key
+```
+
+## Next Steps
+
+1. **AI Integration Improvements**
+   - Implement response caching
+   - Add retry mechanism
+   - Improve async handling
+   - Enhance risk management
+
+2. **Strategy Enhancements**
+   - Add more technical indicators
+   - Implement hybrid strategies
+   - Improve position sizing
+   - Add performance metrics
+
+3. **System Optimization**
+   - Optimize database queries
+   - Improve error handling
+   - Add monitoring system
+   - Implement data validation

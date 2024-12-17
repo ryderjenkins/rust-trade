@@ -103,7 +103,7 @@ curl "http://localhost:8080/api/v1/market/klines?symbol=BTCUSDT&interval=1h&limi
 
 ### Get the K-line data of the specified time range
 ```bash
-curl "curl "http://localhost:8080/api/v1/market/klines?symbol=BTCUSDT&interval=1h&startTime=2024-12-15T00:00:00Z&endTime=2024-12-15T10:00:00Z"
+curl "http://localhost:8080/api/v1/market/klines?symbol=BTCUSDT&interval=1h&startTime=2024-12-15T00:00:00Z&endTime=2024-12-15T10:00:00Z"
 ```
 
 Expected response:
