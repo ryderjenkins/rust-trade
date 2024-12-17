@@ -50,6 +50,7 @@ impl MarketDataPoint {
     }
 }
 
+#[derive(Clone)]
 pub struct MarketDataManager {
     pool: PgPool,
 }

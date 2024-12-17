@@ -31,7 +31,7 @@ pub enum OrderType {
     Market,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,PartialEq)]
 pub enum OrderSide {
     Buy,
     Sell,
