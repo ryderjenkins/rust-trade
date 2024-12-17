@@ -24,4 +24,6 @@ rust_decimal = { version = "1.32", features = ["serde"] }
 async-trait = "0.1"
 axum = "0.7"
 tower = "0.4"
+ta = "0.5" 
+clap = { version = "4.4", features = ["derive"] }
 tower-http = { version = "0.5", features = ["trace"] }

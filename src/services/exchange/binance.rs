@@ -11,6 +11,7 @@ use tracing::{debug, error, info};
 use futures_util::{SinkExt, StreamExt};  
 use tokio_tungstenite::tungstenite::Message;  
 
+#[derive(Clone)]
 pub struct BinanceSpot {
     client: Client,
     base_url: Url,
