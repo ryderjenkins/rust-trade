@@ -2,7 +2,6 @@ use async_openai::config::OpenAIConfig;
 use async_openai::types::Role;
 use tracing::{error, info};
 use super::risk::RiskManager;
-use super::types::*;
 use crate::backtest::{types::*, Strategy};
 use crate::data::market_data::MarketDataPoint;
 use rust_decimal::Decimal;

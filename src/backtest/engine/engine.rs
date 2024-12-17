@@ -1,10 +1,10 @@
-use crate::data::market_data::{MarketDataError, MarketDataManager, MarketDataPoint};
+use crate::data::market_data::{MarketDataManager, MarketDataPoint};
 use crate::backtest::strategy::base::Strategy;
 use crate::backtest::types::*;
 use rust_decimal::prelude::*;
 use std::collections::HashMap;
 use std::error::Error;
-use tracing::{info, error};
+use tracing::info;
 
 use super::executor::OrderExecutor;
 
@@ -131,7 +131,8 @@ impl BacktestEngine {
         let mut max_drawdown = Decimal::zero();
         let mut peak = self.config.initial_capital;
 
-        for trade in &self.trades {
+        // 这里最大回撤细节需要完善
+        for _ in &self.trades {
             let current_value = self.portfolio.total_value;
             if current_value > peak {
                 peak = current_value;
@@ -142,7 +143,6 @@ impl BacktestEngine {
                 }
             }
         }
-
         max_drawdown
     }
 }

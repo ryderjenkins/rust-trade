@@ -5,7 +5,6 @@ use async_openai::{
 };
 use crate::data::market_data::{MarketDataManager, MarketDataPoint};
 use super::types::*;
-use tracing::{info, error};
 use chrono::Utc;
 
 pub struct MarketAnalyzer {

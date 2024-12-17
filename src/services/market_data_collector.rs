@@ -2,9 +2,8 @@ use crate::data::market_data::{MarketDataManager, MarketDataPoint};
 use crate::services::exchange::types::{Exchange, ExchangeError};
 use tokio::sync::{broadcast, mpsc};
 use tokio::time::{sleep, Duration};
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 use std::sync::Arc;
-use dotenv::dotenv;
 
 const RECONNECT_DELAY: Duration = Duration::from_secs(5);
 const CHANNEL_BUFFER_SIZE: usize = 1000;
@@ -116,10 +115,10 @@ impl MarketDataCollector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::database::Database;
     use crate::services::exchange::binance::BinanceSpot;
     use sqlx::postgres::PgPoolOptions;
     use std::time::Duration;
+    use dotenv::dotenv;
     
     #[tokio::test]
     async fn test_market_data_collection() {

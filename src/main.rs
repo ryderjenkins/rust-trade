@@ -12,7 +12,7 @@ use backtest::OrderSide;
 use clap::{Parser, Subcommand};
 use dotenv::dotenv;
 use services::market_data_collector::MarketDataCollector;
-use tracing::{info, error, Level};
+use tracing::{info, error};
 use std::net::SocketAddr;
 use tokio::signal;
 use crate::api::ApiServer;

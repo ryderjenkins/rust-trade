@@ -5,7 +5,7 @@ use axum::{
     Router,
 };
 use std::sync::Arc;
-use crate::services::exchange::types::{Exchange, ExchangeError, RecentTradesQuery, Trade};
+use crate::services::exchange::types::{Exchange, RecentTradesQuery, Trade};
 use super::types::*;
 use crate::data::market_data::MarketDataPoint;
 
