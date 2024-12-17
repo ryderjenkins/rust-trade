@@ -1,4 +1,8 @@
-# Rust Trading System Project Summary
+# Rust Trading System Project Summary (VERSION 1)
+
+## Data Flow
+
+![result](assets/data_flow01.png)
 
 ## Project Architecture
 ```
