@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/tauri';
+import { useState, useEffect } from "react";
 
 function TradesTable({ symbol }) {
   const [trades, setTrades] = useState([]);
@@ -8,12 +7,12 @@ function TradesTable({ symbol }) {
   useEffect(() => {
     const fetchTrades = async () => {
       try {
-        const response = await invoke('fetch_trades', { 
-          symbol,
-          limit: 10
-        });
-        if (response.success) {
-          setTrades(response.data);
+        const response = await fetch(
+          `http://localhost:8080/api/v1/market/trades/${symbol}?limit=10`
+        );
+        const data = await response.json();
+        if (data.success) {
+          setTrades(data.data);
         }
       } catch (error) {
         console.error('Error fetching trades:', error);
@@ -57,4 +56,5 @@ function TradesTable({ symbol }) {
     </div>
   );
 }
+
 export default TradesTable;

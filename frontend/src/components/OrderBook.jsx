@@ -1,6 +1,4 @@
-// src/components/OrderBook.jsx
-import { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/tauri';
+import { useState, useEffect } from "react";
 
 function OrderBook({ symbol }) {
   const [orderBook, setOrderBook] = useState(null);
@@ -9,12 +7,12 @@ function OrderBook({ symbol }) {
   useEffect(() => {
     const fetchOrderBook = async () => {
       try {
-        const response = await invoke('fetch_orderbook', { 
-          symbol,
-          limit: 10
-        });
-        if (response.success) {
-          setOrderBook(response.data);
+        const response = await fetch(
+          `http://localhost:8080/api/v1/market/orderbook/${symbol}?limit=10`
+        );
+        const data = await response.json();
+        if (data.success) {
+          setOrderBook(data.data);
         }
       } catch (error) {
         console.error('Error fetching order book:', error);
@@ -56,4 +54,5 @@ function OrderBook({ symbol }) {
     </div>
   );
 }
+
 export default OrderBook;

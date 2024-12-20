@@ -1,6 +1,4 @@
-// src/components/TickerCard.jsx
-import { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/tauri';
+import { useState, useEffect } from "react";
 
 function TickerCard({ symbol }) {
   const [ticker, setTicker] = useState(null);
@@ -9,9 +7,10 @@ function TickerCard({ symbol }) {
   useEffect(() => {
     const fetchTicker = async () => {
       try {
-        const response = await invoke('fetch_ticker', { symbol });
-        if (response.success) {
-          setTicker(response.data);
+        const response = await fetch(`http://localhost:8080/api/v1/market/ticker/${symbol}`);
+        const data = await response.json();
+        if (data.success) {
+          setTicker(data.data);
         }
       } catch (error) {
         console.error('Error fetching ticker:', error);
@@ -51,4 +50,5 @@ function TickerCard({ symbol }) {
     </div>
   );
 }
+
 export default TickerCard;

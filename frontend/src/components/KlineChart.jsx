@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/tauri';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useState, useEffect } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 function KlineChart({ symbol }) {
   const [klines, setKlines] = useState([]);
@@ -11,7 +10,6 @@ function KlineChart({ symbol }) {
   useEffect(() => {
     const fetchKlines = async () => {
       try {
-        // 计算开始时间
         const endTime = new Date();
         const startTime = new Date();
         switch (timeRange) {
@@ -28,15 +26,12 @@ function KlineChart({ symbol }) {
             startTime.setDate(startTime.getDate() - 1);
         }
 
-        const response = await invoke('fetch_klines', {
-          symbol,
-          interval,
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString()
-        });
-
-        if (response.success) {
-          setKlines(response.data);
+        const response = await fetch(
+          `http://localhost:8080/api/v1/market/klines?symbol=${symbol}&interval=${interval}&startTime=${startTime.toISOString()}&endTime=${endTime.toISOString()}`
+        );
+        const data = await response.json();
+        if (data.success) {
+          setKlines(data.data);
         }
       } catch (error) {
         console.error('Error fetching klines:', error);
@@ -46,7 +41,7 @@ function KlineChart({ symbol }) {
     };
 
     fetchKlines();
-    const timer = setInterval(fetchKlines, 60000); // 每分钟更新一次
+    const timer = setInterval(fetchKlines, 60000);
     return () => clearInterval(timer);
   }, [symbol, interval, timeRange]);
 
@@ -91,11 +86,11 @@ function KlineChart({ symbol }) {
             />
             <YAxis 
               domain={['auto', 'auto']}
-              tickFormatter={(value) => `${value}`}
+              tickFormatter={(value) => `$${value}`}
             />
             <Tooltip
               labelFormatter={(time) => new Date(time).toLocaleString()}
-              formatter={(value) => [`${value}`, '价格']}
+              formatter={(value) => [`$${value}`, '价格']}
             />
             <Legend />
             <Line 
@@ -124,4 +119,5 @@ function KlineChart({ symbol }) {
     </div>
   );
 }
+
 export default KlineChart;
