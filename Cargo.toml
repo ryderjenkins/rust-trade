@@ -28,3 +28,11 @@ ta = "0.5"
 async-openai = "0.13"
 clap = { version = "4.4", features = ["derive"] }
 tower-http = { version = "0.5", features = ["trace"] }
+tauri = { version = "1.5", features = ["api-all"] }
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[features]
+default = [ "custom-protocol" ]
+custom-protocol = [ "tauri/custom-protocol" ]
