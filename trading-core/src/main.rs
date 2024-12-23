@@ -81,7 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 解析命令行参数
     let cli = Cli::parse();
-
+    
     // 加载配置
     let settings = Settings::new()?;
     info!("Configuration loaded successfully");

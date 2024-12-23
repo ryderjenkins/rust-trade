@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
@@ -221,32 +222,29 @@ export default function MarketDashboard() {
       {/* 左侧导航按钮处理 */}
       <div className="fixed left-0 top-0 h-full w-64 bg-gray-900 p-4">
         <nav className="space-y-4">
-          <button
-            onClick={() => window.location.href = '/dashboard'}
-            className="text-white hover:text-blue-400 block w-full text-left px-4 py-2 rounded hover:bg-gray-800"
-          >
-            Dashboard
-          </button>
-          <button
-            onClick={() => window.location.href = '/trading'}
-            className="text-white hover:text-blue-400 block w-full text-left px-4 py-2 rounded hover:bg-gray-800"
-          >
-            Trading
-          </button>
-          <button
-            onClick={() => window.location.href = '/backtest'}
-            className="text-white hover:text-blue-400 block w-full text-left px-4 py-2 rounded hover:bg-gray-800"
-          >
-            Backtest
-          </button>
-          <button
-            onClick={() => window.location.href = '/settings'}
-            className="text-white hover:text-blue-400 block w-full text-left px-4 py-2 rounded hover:bg-gray-800"
-          >
-            Settings
-          </button>
+          <Link href="/dashboard">
+            <button className="text-white hover:text-blue-400 block w-full text-left px-4 py-2 rounded hover:bg-gray-800">
+              Dashboard
+            </button>
+          </Link>
+          <Link href="/Trading">
+            <button className="text-white hover:text-blue-400 block w-full text-left px-4 py-2 rounded hover:bg-gray-800">
+              Trading
+            </button>
+          </Link>
+          <Link href="/Backtest">
+            <button className="text-white hover:text-blue-400 block w-full text-left px-4 py-2 rounded hover:bg-gray-800">
+              Backtest
+            </button>
+          </Link>
+          <Link href="/Settings">
+            <button className="text-white hover:text-blue-400 block w-full text-left px-4 py-2 rounded hover:bg-gray-800">
+              Settings
+            </button>
+          </Link>
         </nav>
       </div>
+
 
       {/* Price Chart */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">

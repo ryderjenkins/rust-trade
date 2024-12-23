@@ -6,9 +6,8 @@
 mod commands;
 mod state;
 
-use commands::market::{get_market_data, get_latest_price, get_candlestick_data,get_market_overview};
+use commands::{get_market_data, get_latest_price, get_candlestick_data,get_market_overview, run_backtest};
 use state::AppState;
-use tauri::Manager;
 
 fn main() {
   // 初始化日志
@@ -31,7 +30,8 @@ fn main() {
           get_market_data,
           get_latest_price,
           get_market_overview,
-          get_candlestick_data
+          get_candlestick_data,
+          run_backtest
       ])
       .setup(|app| {
           #[cfg(debug_assertions)]

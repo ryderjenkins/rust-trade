@@ -1,6 +1,7 @@
 use crate::data::market_data::{MarketDataManager, MarketDataPoint};
 use crate::backtest::strategy::base::Strategy;
 use crate::backtest::types::*;
+use chrono::Utc;
 use rust_decimal::prelude::*;
 use std::collections::HashMap;
 use std::error::Error;
@@ -144,5 +145,17 @@ impl BacktestEngine {
             }
         }
         max_drawdown
+    }
+
+    pub fn get_equity_curve(&self) -> Vec<(chrono::DateTime<Utc>, Decimal)> {
+        let mut equity_curve = Vec::new();
+        let mut timestamp = self.config.start_time;
+
+        for _ in &self.trades {
+            equity_curve.push((timestamp, self.portfolio.total_value));
+            timestamp = timestamp + chrono::Duration::days(1); 
+        }
+
+        equity_curve
     }
 }

@@ -72,6 +72,10 @@ impl MarketDataManager {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
+    
+    pub fn get_pool(&self) -> PgPool {
+        self.pool.clone()
+    }
 
     pub async fn store_market_data(
         &self,
