@@ -6,7 +6,7 @@
 mod commands;
 mod state;
 
-use commands::market::{get_market_data, get_latest_price};
+use commands::market::{get_market_data, get_latest_price, get_candlestick_data,get_market_overview};
 use state::AppState;
 use tauri::Manager;
 
@@ -29,7 +29,9 @@ fn main() {
       .manage(app_state)
       .invoke_handler(tauri::generate_handler![
           get_market_data,
-          get_latest_price
+          get_latest_price,
+          get_market_overview,
+          get_candlestick_data
       ])
       .setup(|app| {
           #[cfg(debug_assertions)]

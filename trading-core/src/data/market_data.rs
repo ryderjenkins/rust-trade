@@ -17,6 +17,17 @@ pub enum MarketDataError {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Candlestick {
+    pub timestamp: DateTime<Utc>,
+    pub symbol: String,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub volume: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MarketDataPoint {
     pub timestamp: DateTime<Utc>,
     pub symbol: String,
@@ -225,6 +236,61 @@ impl MarketDataManager {
         info!("Cleaned up {} old market data records", deleted_count);
         Ok(deleted_count)
     }
+
+    pub async fn get_candlestick_data(
+        &self,
+        symbol: &str,
+        interval: &str,
+        start_time: Option<chrono::NaiveDateTime>,
+        end_time: Option<chrono::NaiveDateTime>,
+    ) -> Result<Vec<MarketDataPoint>, MarketDataError> {
+        debug!(
+            "Fetching candlestick data for symbol: {}, interval: {}, start_time: {:?}, end_time: {:?}",
+            symbol, interval, start_time, end_time
+        );
+    
+        let rows = sqlx::query!(
+            r#"
+            SELECT 
+                timestamp as "timestamp!", 
+                symbol as "symbol!", 
+                price as "price!", 
+                volume as "volume!", 
+                high as "high!", 
+                low as "low!", 
+                open as "open!", 
+                close as "close!"
+            FROM market_data
+            WHERE symbol = $1
+            AND ($2::timestamp IS NULL OR timestamp >= $2)
+            AND ($3::timestamp IS NULL OR timestamp <= $3)
+            ORDER BY timestamp DESC
+            "#,
+            symbol,
+            start_time,
+            end_time
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| {
+            error!("Failed to fetch candlestick data: {}", e);
+            MarketDataError::DatabaseError(e)
+        })?;
+    
+        Ok(rows
+            .into_iter()
+            .map(|row| MarketDataPoint {
+                timestamp: row.timestamp,
+                symbol: row.symbol,
+                price: row.price,
+                volume: row.volume,
+                high: row.high,
+                low: row.low,
+                open: row.open,
+                close: row.close,
+            })
+            .collect())
+    }    
 }
 
 #[cfg(test)]
