@@ -1,7 +1,7 @@
 use crate::data::market_data::{MarketDataManager, MarketDataPoint};
 use crate::backtest::strategy::base::Strategy;
 use crate::backtest::types::*;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use rust_decimal::prelude::*;
 use std::collections::HashMap;
 use std::error::Error;
@@ -87,21 +87,42 @@ impl BacktestEngine {
     }
 
     fn generate_result(&self) -> BacktestResult {
-        let (winning_trades, losing_trades) = self.calculate_trade_statistics();
+        let mut winning_trades = 0;
+        let mut losing_trades = 0;
+        let mut last_position_price = Decimal::zero();
         
-        let return_pct = if self.config.initial_capital > Decimal::zero() {
-            (self.portfolio.total_value - self.config.initial_capital) 
-                / self.config.initial_capital * Decimal::from(100)
+        for trade in &self.trades {
+            match trade.side {
+                OrderSide::Sell => {
+                    if trade.price > last_position_price {
+                        winning_trades += 1;
+                    } else {
+                        losing_trades += 1;
+                    }
+                }
+                OrderSide::Buy => {
+                    last_position_price = trade.price;
+                }
+            }
+        }
+
+        // 计算总收益率
+        let final_value = self.calculate_portfolio_value_at(&self.config.end_time);
+        let total_return = if self.config.initial_capital > Decimal::zero() {
+            ((final_value - self.config.initial_capital) / self.config.initial_capital) * Decimal::from(100)
         } else {
             Decimal::zero()
         };
 
+        // 计算最大回撤
+        let max_drawdown = self.calculate_max_drawdown();
+
         BacktestResult {
-            total_return: return_pct,
+            total_return,
             total_trades: self.trades.len() as u32,
             winning_trades,
             losing_trades,
-            max_drawdown: self.calculate_max_drawdown(),
+            max_drawdown,
             trades: self.trades.clone(),
         }
     }
@@ -131,30 +152,81 @@ impl BacktestEngine {
     fn calculate_max_drawdown(&self) -> Decimal {
         let mut max_drawdown = Decimal::zero();
         let mut peak = self.config.initial_capital;
-
-        // 这里最大回撤细节需要完善
-        for _ in &self.trades {
-            let current_value = self.portfolio.total_value;
+        
+        let equity_points = self.get_equity_curve();
+        
+        for point in equity_points {
+            let current_value = Decimal::from_str(&point.value).unwrap_or(Decimal::zero());
             if current_value > peak {
                 peak = current_value;
             } else if peak > Decimal::zero() {
-                let drawdown = (peak - current_value) / peak * Decimal::from(100);
+                let drawdown = ((peak - current_value) / peak) * Decimal::from(100);
                 if drawdown > max_drawdown {
                     max_drawdown = drawdown;
                 }
             }
         }
+        
         max_drawdown
     }
 
-    pub fn get_equity_curve(&self) -> Vec<(chrono::DateTime<Utc>, Decimal)> {
-        let mut equity_curve = Vec::new();
-        let mut timestamp = self.config.start_time;
-
-        for _ in &self.trades {
-            equity_curve.push((timestamp, self.portfolio.total_value));
-            timestamp = timestamp + chrono::Duration::days(1); 
+    // 直接返回前端需要的格式
+    fn calculate_portfolio_value_at(&self, timestamp: &DateTime<Utc>) -> Decimal {
+        let mut value = self.config.initial_capital;
+        let mut position_value = Decimal::zero();
+        let mut current_position = Decimal::zero();
+        
+        for trade in &self.trades {
+            if trade.timestamp <= *timestamp {
+                match trade.side {
+                    OrderSide::Buy => {
+                        current_position += trade.quantity;
+                        value -= trade.price * trade.quantity + trade.commission;
+                    }
+                    OrderSide::Sell => {
+                        current_position -= trade.quantity;
+                        value += trade.price * trade.quantity - trade.commission;
+                    }
+                }
+            }
         }
+
+        // 添加当前持仓的市场价值
+        if current_position > Decimal::zero() {
+            if let Some(last_trade) = self.trades.last() {
+                position_value = current_position * last_trade.price;
+            }
+        }
+
+        value + position_value
+    }
+
+
+    pub fn get_equity_curve(&self) -> Vec<EquityPoint> {
+        let mut equity_curve = Vec::new();
+        let mut current_value = self.config.initial_capital;
+        
+        // 记录初始值
+        equity_curve.push(EquityPoint {
+            timestamp: self.config.start_time.to_rfc3339(),
+            value: current_value.to_string(),
+        });
+
+        // 记录每个交易点的权益
+        for trade in &self.trades {
+            current_value = self.calculate_portfolio_value_at(&trade.timestamp);
+            equity_curve.push(EquityPoint {
+                timestamp: trade.timestamp.to_rfc3339(),
+                value: current_value.to_string(),
+            });
+        }
+
+        // 记录最终值
+        let final_value = self.calculate_portfolio_value_at(&self.config.end_time);
+        equity_curve.push(EquityPoint {
+            timestamp: self.config.end_time.to_rfc3339(),
+            value: final_value.to_string(),
+        });
 
         equity_curve
     }

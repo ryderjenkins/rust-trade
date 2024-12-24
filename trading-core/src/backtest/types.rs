@@ -66,3 +66,37 @@ pub struct BacktestResult {
     pub max_drawdown: Decimal,
     pub trades: Vec<Trade>,
 }
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct EquityPoint {
+    pub timestamp: String,
+    pub value: String,
+}
+
+#[derive(serde::Serialize)]
+pub struct MarketOverview {
+    pub price: f64,
+    pub price_change_24h: f64,
+    pub volume_24h: f64,
+}
+
+#[derive(serde::Serialize)]
+pub struct BacktestResponse {
+    pub total_return: String,
+    pub total_trades: u32,
+    pub winning_trades: u32,
+    pub losing_trades: u32,
+    pub max_drawdown: String,
+    pub trades: Vec<TradeResponse>,
+    pub equity_curve: Vec<EquityPoint>,
+}
+
+#[derive(serde::Serialize)]
+pub struct TradeResponse {
+    pub timestamp: String,
+    pub side: String,
+    pub symbol: String,
+    pub quantity: String,
+    pub price: String,
+    pub commission: String,
+}

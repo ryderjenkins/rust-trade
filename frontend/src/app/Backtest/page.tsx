@@ -31,13 +31,13 @@ interface EquityPoint {
 
 // 后端返回的完整回测结果格式
 interface BacktestResponse {
-  totalReturn: string;
-  totalTrades: number;
-  winningTrades: number;
-  losingTrades: number;
-  maxDrawdown: string;
+  equity_curve: EquityPoint[];
+  losing_trades: number;
+  max_drawdown: string;
+  total_return: string;
+  total_trades: number;
   trades: TradeResponse[];
-  equityCurve: EquityPoint[];
+  winning_trades: number;
 }
 
 export default function Backtest() {
@@ -53,14 +53,42 @@ export default function Backtest() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 添加格式化函数
+  const formatPercentage = (value: string) => {
+    const num = parseFloat(value);
+    return num.toFixed(2);
+  };
+
+  const formatPrice = (value: string) => {
+    const num = parseFloat(value);
+    return num.toFixed(2);
+  };
+
+  const formatQuantity = (value: string) => {
+    const num = parseFloat(value);
+    return num.toFixed(8); // 保留8位小数，适合加密货币数量
+  };
+
+  const formatCommission = (value: string) => {
+    const num = parseFloat(value);
+    return num.toFixed(4); // 佣金保留4位小数
+  };
+
   const runBacktest = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await invoke<BacktestResponse>('run_backtest', {
-        ...params,
+      const response = await invoke<BacktestResponse>('run_backtest', {
+        symbol: params.symbol,
+        days: params.days,
+        initialCapital: params.initialCapital,
+        commissionRate: params.commissionRate,
+        shortPeriod: params.shortPeriod,
+        longPeriod: params.longPeriod,
       });
-      setResult(result);
+
+      console.log('Raw backtest response:', response);
+      setResult(response);
     } catch (err) {
       console.error('Backtest error:', err);
       setError(err instanceof Error ? err.message : 'Failed to run backtest');
@@ -147,7 +175,7 @@ export default function Backtest() {
         </div>
       )}
 
-      {/* Backtest Results */}
+      {/* Results Summary */}
       {result && (
         <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -155,86 +183,102 @@ export default function Backtest() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <div>
                 <p className="text-sm text-gray-500">Total Return</p>
-                <p className="text-xl font-bold">{parseFloat(result.totalReturn).toFixed(2)}%</p>
+                <p className="text-xl font-bold">{formatPercentage(result.total_return)}%</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Trades</p>
-                <p className="text-xl font-bold">{result.totalTrades}</p>
+                <p className="text-xl font-bold">{result.total_trades}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Winning Trades</p>
-                <p className="text-xl font-bold">{result.winningTrades}</p>
+                <p className="text-xl font-bold">{result.winning_trades}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Losing Trades</p>
-                <p className="text-xl font-bold">{result.losingTrades}</p>
+                <p className="text-xl font-bold">{result.losing_trades}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Max Drawdown</p>
-                <p className="text-xl font-bold">{parseFloat(result.maxDrawdown).toFixed(2)}%</p>
+                <p className="text-xl font-bold">{formatPercentage(result.max_drawdown)}%</p>
               </div>
             </div>
           </div>
 
-          {/* Equity Curve Chart */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Equity Curve</h2>
-            <div className="h-96">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={result.equityCurve}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="timestamp"
-                    tickFormatter={(time) => new Date(time).toLocaleDateString()}
-                  />
-                  <YAxis />
-                  <Tooltip 
-                    labelFormatter={(label) => new Date(label).toLocaleString()}
-                    formatter={(value: string) => [`$${parseFloat(value).toFixed(2)}`, 'Equity']}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#2563eb" 
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+          {/* Equity Curve */}
+          {result.equity_curve && result.equity_curve.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Equity Curve</h2>
+              <div className="h-96">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart 
+                    data={result.equity_curve.map(point => ({
+                      timestamp: new Date(point.timestamp).getTime(),
+                      value: parseFloat(point.value)
+                    }))}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="timestamp"
+                      type="number"
+                      domain={['auto', 'auto']}
+                      tickFormatter={(timestamp) => new Date(timestamp).toLocaleDateString()}
+                      scale="time"
+                    />
+                    <YAxis 
+                      domain={['auto', 'auto']}
+                      tickFormatter={(value) => `$${value.toFixed(2)}`}
+                    />
+                    <Tooltip 
+                      labelFormatter={(timestamp) => new Date(timestamp).toLocaleString()}
+                      formatter={(value: number) => [`$${value.toFixed(2)}`, 'Portfolio Value']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#2563eb" 
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Trade History Table */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Trade History</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="pb-2">Time</th>
-                    <th className="pb-2">Side</th>
-                    <th className="pb-2">Symbol</th>
-                    <th className="pb-2">Quantity</th>
-                    <th className="pb-2">Price</th>
-                    <th className="pb-2">Commission</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.trades.map((trade, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="py-2">{new Date(trade.timestamp).toLocaleString()}</td>
-                      <td className={`py-2 ${trade.side === 'Buy' ? 'text-green-500' : 'text-red-500'}`}>
-                        {trade.side}
-                      </td>
-                      <td className="py-2">{trade.symbol}</td>
-                      <td className="py-2">{parseFloat(trade.quantity).toFixed(8)}</td>
-                      <td className="py-2">${parseFloat(trade.price).toFixed(2)}</td>
-                      <td className="py-2">${parseFloat(trade.commission).toFixed(2)}</td>
+          {/* Trade History */}
+          {result.trades && result.trades.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Trade History</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left border-b">
+                      <th className="pb-2">Time</th>
+                      <th className="pb-2">Side</th>
+                      <th className="pb-2">Symbol</th>
+                      <th className="pb-2">Quantity</th>
+                      <th className="pb-2">Price</th>
+                      <th className="pb-2">Commission</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {result.trades.map((trade, index) => (
+                      <tr key={index} className="border-b">
+                        <td className="py-2">{new Date(trade.timestamp).toLocaleString()}</td>
+                        <td className={`py-2 ${trade.side === 'Buy' ? 'text-green-500' : 'text-red-500'}`}>
+                          {trade.side}
+                        </td>
+                        <td className="py-2">{trade.symbol}</td>
+                        <td className="py-2">{formatQuantity(trade.quantity)}</td>
+                        <td className="py-2">${formatPrice(trade.price)}</td>
+                        <td className="py-2">${formatCommission(trade.commission)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

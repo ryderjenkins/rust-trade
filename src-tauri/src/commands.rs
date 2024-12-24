@@ -1,6 +1,6 @@
 // src-tauri/src/commands/market.rs
 use tauri::State;
-use trading_core::data::market_data::MarketDataPoint;
+use trading_core::{backtest::*, data::market_data::MarketDataPoint};
 use chrono::{DateTime,Duration, Utc};
 use crate::state::AppState;
 use rust_decimal::Decimal;
@@ -15,39 +15,6 @@ use trading_core::{
 
 use trading_core::backtest::engine::engine::BacktestEngine;
 
-#[derive(serde::Serialize)]
-pub struct BacktestResponse {
-    total_return: Decimal,
-    total_trades: u32,
-    winning_trades: u32,
-    losing_trades: u32,
-    max_drawdown: Decimal,
-    trades: Vec<TradeResponse>,
-    equity_curve: Vec<EquityPoint>, 
-}
-
-#[derive(serde::Serialize)]
-pub struct TradeResponse {
-    timestamp: String,
-    side: String,
-    symbol: String,
-    quantity: Decimal,
-    price: Decimal,
-    commission: Decimal,
-}
-
-#[derive(serde::Serialize)]
-pub struct EquityPoint {
-    timestamp: String,
-    value: Decimal,
-}
-
-#[derive(serde::Serialize)]
-pub struct MarketOverview {
-    pub price: f64,
-    pub price_change_24h: f64,
-    pub volume_24h: f64,
-}
 
 #[tauri::command]
 pub async fn get_market_data(
@@ -144,7 +111,6 @@ pub async fn run_backtest(
     short_period: usize,
     long_period: usize,
 ) -> Result<BacktestResponse, String> {
-
     let market_data_manager = &state.market_manager;
     let pool = market_data_manager.get_pool();
     let market_data_manager = MarketDataManager::new(pool);
@@ -171,28 +137,29 @@ pub async fn run_backtest(
     let mut engine = BacktestEngine::new(market_data_manager, config);
     let result = engine.run(&mut strategy).await.map_err(|e| e.to_string())?;
 
-    let trades = result.trades.into_iter().map(|trade| TradeResponse {
+    // 确保数值转换为字符串时保持精度
+    let trades: Vec<TradeResponse> = result.trades.into_iter().map(|trade| TradeResponse {
         timestamp: trade.timestamp.to_rfc3339(),
         side: match trade.side {
             trading_core::backtest::types::OrderSide::Buy => "Buy".to_string(),
             trading_core::backtest::types::OrderSide::Sell => "Sell".to_string(),
         },
         symbol: trade.symbol,
-        quantity: trade.quantity,
-        price: trade.price,
-        commission: trade.commission,
+        quantity: trade.quantity.to_string(),
+        price: trade.price.to_string(),
+        commission: trade.commission.to_string(),
     }).collect();
 
+    // 确保权益曲线数据正确转换
+    let equity_curve: Vec<EquityPoint> = engine.get_equity_curve();
+
     Ok(BacktestResponse {
-        total_return: result.total_return,
+        total_return: result.total_return.to_string(),
         total_trades: result.total_trades,
         winning_trades: result.winning_trades,
         losing_trades: result.losing_trades,
-        max_drawdown: result.max_drawdown,
+        max_drawdown: result.max_drawdown.to_string(),
         trades,
-        equity_curve: engine.get_equity_curve().into_iter().map(|(timestamp, value)| EquityPoint {
-            timestamp: timestamp.to_rfc3339(),
-            value,
-        }).collect(),
+        equity_curve,
     })
 }
