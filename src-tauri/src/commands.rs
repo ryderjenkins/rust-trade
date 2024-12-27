@@ -48,6 +48,11 @@ pub async fn get_candlestick_data(
     start_time: Option<String>,
     end_time: Option<String>,   
 ) -> Result<Vec<MarketDataPoint>, String> {
+    // 验证时间间隔格式
+    if !matches!(interval.as_str(), "1m" | "1h" | "1d" | "1w" | "1M") {
+        return Err("Invalid interval format. Supported formats: 1m, 1h, 1d, 1w, 1M".to_string());
+    }
+    
     let start_time = start_time
         .and_then(|s| chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%d %H:%M:%S").ok());
     let end_time = end_time

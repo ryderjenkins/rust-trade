@@ -26,6 +26,41 @@ pub struct MarketDataPoint {
     pub close: f64,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum TimeInterval {
+    Minute,
+    Hour,
+    Day,
+    Week,
+    Month,
+}
+
+impl TimeInterval {
+    pub fn from_string(s: &str) -> Result<Self, MarketDataError> {
+        match s.to_lowercase().as_str() {
+            "1m" => Ok(TimeInterval::Minute),
+            "1h" => Ok(TimeInterval::Hour),
+            "1d" => Ok(TimeInterval::Day),
+            "1w" => Ok(TimeInterval::Week),
+            "1M" => Ok(TimeInterval::Month),
+            _ => Err(MarketDataError::InvalidDataFormat(
+                format!("Unsupported interval: {}", s)
+            )),
+        }
+    }
+
+    pub fn to_postgres_interval(&self) -> &'static str {
+        match self {
+            TimeInterval::Minute => "minute",
+            TimeInterval::Hour => "hour",
+            TimeInterval::Day => "day",
+            TimeInterval::Week => "week",
+            TimeInterval::Month => "month",
+        }
+    }
+}
+
+
 impl MarketDataPoint {
     pub fn new(
         timestamp: DateTime<Utc>,
@@ -162,6 +197,7 @@ impl MarketDataManager {
             .collect())
     }
     
+    
     pub async fn get_latest_price(&self, symbol: &str) -> Result<f64, MarketDataError> {
         debug!("Fetching latest price for symbol: {}", symbol);
         
@@ -252,8 +288,10 @@ impl MarketDataManager {
         start_time: Option<chrono::NaiveDateTime>,
         end_time: Option<chrono::NaiveDateTime>,
     ) -> Result<Vec<MarketDataPoint>, MarketDataError> {
+        let interval = TimeInterval::from_string(interval)?;
+        
         debug!(
-            "Fetching candlestick data for symbol: {}, interval: {}",
+            "Fetching candlestick data for symbol: {}, interval: {:?}",
             symbol, interval
         );
     
@@ -292,7 +330,7 @@ impl MarketDataManager {
             symbol,
             start_time,
             end_time,
-            interval
+            interval.to_postgres_interval()
         )
         .fetch_all(&self.pool)
         .await
