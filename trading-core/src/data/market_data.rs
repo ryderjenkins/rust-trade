@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{postgres::types::PgInterval, PgPool};
 use thiserror::Error;
 use tracing::{debug, error, info};
 
@@ -25,41 +25,6 @@ pub struct MarketDataPoint {
     pub open: f64,
     pub close: f64,
 }
-
-#[derive(Debug, Clone, Copy)]
-pub enum TimeInterval {
-    Minute,
-    Hour,
-    Day,
-    Week,
-    Month,
-}
-
-impl TimeInterval {
-    pub fn from_string(s: &str) -> Result<Self, MarketDataError> {
-        match s.to_lowercase().as_str() {
-            "1m" => Ok(TimeInterval::Minute),
-            "1h" => Ok(TimeInterval::Hour),
-            "1d" => Ok(TimeInterval::Day),
-            "1w" => Ok(TimeInterval::Week),
-            "1M" => Ok(TimeInterval::Month),
-            _ => Err(MarketDataError::InvalidDataFormat(
-                format!("Unsupported interval: {}", s)
-            )),
-        }
-    }
-
-    pub fn to_postgres_interval(&self) -> &'static str {
-        match self {
-            TimeInterval::Minute => "minute",
-            TimeInterval::Hour => "hour",
-            TimeInterval::Day => "day",
-            TimeInterval::Week => "week",
-            TimeInterval::Month => "month",
-        }
-    }
-}
-
 
 impl MarketDataPoint {
     pub fn new(
@@ -281,6 +246,48 @@ impl MarketDataManager {
         Ok(deleted_count)
     }
 
+    fn get_postgres_interval(interval: &str) -> Result<(&'static str, PgInterval), MarketDataError> {
+        match interval.to_lowercase().as_str() {
+            "1m" => Ok(("minute", PgInterval {
+                months: 0,
+                days: 0,
+                microseconds: 60i64 * 1_000_000i64, // 1 minute
+            })),
+            "5m" => Ok(("minute", PgInterval {
+                months: 0,
+                days: 0,
+                microseconds: 5i64 * 60i64 * 1_000_000i64, // 5 minutes
+            })),
+            "15m" => Ok(("minute", PgInterval {
+                months: 0,
+                days: 0,
+                microseconds: 15i64 * 60i64 * 1_000_000i64, // 15 minutes
+            })),
+            "1h" => Ok(("hour", PgInterval {
+                months: 0,
+                days: 0,
+                microseconds: 60i64 * 60i64 * 1_000_000i64, // 1 hour
+            })),
+            "4h" => Ok(("hour", PgInterval {
+                months: 0,
+                days: 0,
+                microseconds: 4i64 * 60i64 * 60i64 * 1_000_000i64, // 4 hours
+            })),
+            "1d" => Ok(("day", PgInterval {
+                months: 0,
+                days: 1,
+                microseconds: 0,
+            })),
+            "1w" => Ok(("week", PgInterval {
+                months: 0,
+                days: 7,
+                microseconds: 0,
+            })),
+            _ => Err(MarketDataError::InvalidDataFormat(
+                format!("Unsupported interval: {}", interval)
+            )),
+        }
+    }
     pub async fn get_candlestick_data(
         &self,
         symbol: &str,
@@ -288,49 +295,74 @@ impl MarketDataManager {
         start_time: Option<chrono::NaiveDateTime>,
         end_time: Option<chrono::NaiveDateTime>,
     ) -> Result<Vec<MarketDataPoint>, MarketDataError> {
-        let interval = TimeInterval::from_string(interval)?;
+        let (trunc_unit, step_interval) = Self::get_postgres_interval(interval)?;
         
         debug!(
-            "Fetching candlestick data for symbol: {}, interval: {:?}",
-            symbol, interval
+            "Fetching candlestick data for symbol: {}, truncate by: {}, step: {:?}",
+            symbol, trunc_unit, step_interval
         );
     
         let rows = sqlx::query!(
             r#"
-            WITH time_slots AS (
+            WITH RECURSIVE time_series AS (
                 SELECT 
-                    date_trunc($4, timestamp) as slot_time,
-                    first_value(price) OVER w as open,
-                    max(price) OVER w as high,
-                    min(price) OVER w as low,
-                    last_value(price) OVER w as close,
-                    sum(volume) OVER w as volume
+                    CASE 
+                        WHEN $2::timestamp IS NOT NULL THEN date_trunc($4, $2::timestamp)
+                        ELSE date_trunc($4, MIN(timestamp))
+                    END as series_time
                 FROM tick_data
                 WHERE symbol = $1
                 AND ($2::timestamp IS NULL OR timestamp >= $2)
                 AND ($3::timestamp IS NULL OR timestamp <= $3)
+                
+                UNION ALL
+                
+                SELECT series_time + $5
+                FROM time_series
+                WHERE series_time + $5 <= (
+                    CASE 
+                        WHEN $3::timestamp IS NOT NULL THEN date_trunc($4, $3::timestamp)
+                        ELSE date_trunc($4, (SELECT MAX(timestamp) FROM tick_data WHERE symbol = $1))
+                    END
+                )
+            ),
+            interval_data AS (
+                SELECT 
+                    series_time as slot_time,
+                    first_value(td.price) OVER w as open,
+                    max(td.price) OVER w as high,
+                    min(td.price) OVER w as low,
+                    last_value(td.price) OVER w as close,
+                    sum(td.volume) OVER w as volume
+                FROM time_series ts
+                LEFT JOIN tick_data td ON 
+                    td.symbol = $1 
+                    AND td.timestamp >= ts.series_time 
+                    AND td.timestamp < ts.series_time + $5
                 WINDOW w AS (
-                    PARTITION BY date_trunc($4, timestamp)
-                    ORDER BY timestamp
+                    PARTITION BY ts.series_time 
+                    ORDER BY td.timestamp
                     ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
                 )
             )
             SELECT DISTINCT
                 slot_time as "timestamp!",
                 $1 as "symbol!",
-                close as "price!",
-                volume as "volume!",
-                high as "high!",
-                low as "low!",
-                open as "open!",
-                close as "close!"
-            FROM time_slots
-            ORDER BY slot_time DESC
+                COALESCE(close, 0) as "price!",
+                COALESCE(volume, 0) as "volume!",
+                COALESCE(high, 0) as "high!",
+                COALESCE(low, 0) as "low!",
+                COALESCE(open, 0) as "open!",
+                COALESCE(close, 0) as "close!"
+            FROM interval_data
+            WHERE volume > 0
+            ORDER BY slot_time ASC
             "#,
             symbol,
             start_time,
             end_time,
-            interval.to_postgres_interval()
+            trunc_unit,
+            step_interval
         )
         .fetch_all(&self.pool)
         .await
@@ -338,6 +370,8 @@ impl MarketDataManager {
             error!("Failed to fetch candlestick data: {}", e);
             MarketDataError::DatabaseError(e)
         })?;
+    
+        info!("Fetched {} candlestick data points", rows.len());
     
         Ok(rows
             .into_iter()
