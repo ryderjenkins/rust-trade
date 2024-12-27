@@ -27,12 +27,15 @@ interface MarketOverview {
 
 const intervals = [
   { label: '1m', value: '1m' },
-  { label: '5m', value: '5m' },
-  { label: '15m', value: '15m' },
   { label: '1h', value: '1h' },
-  { label: '4h', value: '4h' },
   { label: '1d', value: '1d' },
+  { label: '1w', value: '1w' },
+  { label: '1M', value: '1M' },
 ];
+
+const formatDateTime = (date: Date): string => {
+  return format(date, 'yyyy-MM-dd HH:mm:ss');
+};
 
 export default function MarketDashboard() {
   const [symbol] = useState('BTCUSDT');
@@ -55,33 +58,50 @@ export default function MarketDashboard() {
   const fetchCandlesticks = useCallback(
     async (startTime?: string, endTime?: string) => {
       try {
+        setIsLoading(true);
+        
+        const timeRange = startTime && endTime 
+          ? { startTime, endTime }
+          : getStartEndTimeForInterval(activeInterval);
+        
+        console.log('Fetching candlesticks with params:', {
+          symbol,
+          interval: activeInterval,
+          start_time: timeRange.startTime,
+          end_time: timeRange.endTime
+        });
+  
         const data = await invoke<MarketDataPoint[]>('get_candlestick_data', {
           symbol,
           interval: activeInterval,
-          start_time: startTime,
-          end_time: endTime,
-          limit: 100,
+          start_time: timeRange.startTime,
+          end_time: timeRange.endTime
         });
-
+  
         if (data.length === 0) {
-          console.log('No data found for the selected time range, trying previous range...');
-          // 尝试一个稍早的时间区间
-          const { startTime: fallbackStartTime, endTime: fallbackEndTime } = getStartEndTimeForInterval(getPreviousInterval(activeInterval));
-          return fetchCandlesticks(fallbackStartTime, fallbackEndTime);
+          console.log('No data found for the selected time range');
+          setError('No data available for the selected time range');
+          return;
         }
-
-        const sortedData = data.sort(
+  
+        // 确保数据按时间正确排序
+        const sortedData = [...data].sort(
           (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
+  
+        console.log(`Received ${sortedData.length} candlesticks`);
         setCandlesticks(sortedData);
         setError(null);
       } catch (err) {
         console.error('Error fetching candlesticks:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch candlestick data');
+      } finally {
+        setIsLoading(false);
       }
     },
     [symbol, activeInterval]
   );
+  
   
   useEffect(() => {
     const fetchData = async () => {
@@ -106,54 +126,52 @@ export default function MarketDashboard() {
   
 
   const handleIntervalChange = async (newInterval: string) => {
+    if (newInterval === activeInterval) return;
+    
     setActiveInterval(newInterval);
     setIsLoading(true);
+    setError(null);
+    
     try {
       const { startTime, endTime } = getStartEndTimeForInterval(newInterval);
       await fetchCandlesticks(startTime, endTime);
     } catch (err) {
-      console.error('Error fetching candlesticks:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch candlestick data');
+      console.error('Error changing interval:', err);
+      setError(err instanceof Error ? err.message : 'Failed to change interval');
     } finally {
       setIsLoading(false);
     }
   };
-
-  // 获取上一个时间区间，例如，如果当前选择了1m，则回退到5m
-  const getPreviousInterval = (interval: string) => {
-    const intervalOrder = ['1m', '5m', '15m', '1h', '4h', '1d'];
-    const currentIndex = intervalOrder.indexOf(interval);
-    return currentIndex > 0 ? intervalOrder[currentIndex - 1] : interval;
-  };
   
   const getStartEndTimeForInterval = (interval: string) => {
     const now = new Date();
-    let startTime = now;
+    const startTime = new Date(now);
+    
     switch (interval) {
       case '1m':
-        startTime = new Date(now.getTime() - 1 * 60000); 
-        break;
-      case '5m':
-        startTime = new Date(now.getTime() - 5 * 60000);
-        break;
-      case '15m':
-        startTime = new Date(now.getTime() - 15 * 60000);
+        startTime.setMinutes(now.getMinutes() - 60);
         break;
       case '1h':
-        startTime = new Date(now.getTime() - 60 * 60000);
-        break;
-      case '4h':
-        startTime = new Date(now.getTime() - 4 * 60 * 60000);
+        startTime.setHours(now.getHours() - 24);
         break;
       case '1d':
-        startTime = new Date(now.getTime() - 24 * 60 * 60000);
+        startTime.setDate(now.getDate() - 30);
+        break;
+      case '1w':
+        startTime.setDate(now.getDate() - 90); 
+        break;
+      case '1M':
+        startTime.setMonth(now.getMonth() - 12); 
         break;
       default:
-        startTime = now;
-        break;
+        startTime.setHours(now.getHours() - 24);
     }
-    return { startTime: startTime.toISOString(), endTime: now.toISOString() };
-  };  
+    
+    return {
+      startTime: formatDateTime(startTime),
+      endTime: formatDateTime(now)
+    };
+  };
 
   if (error) {
     return (
@@ -171,8 +189,16 @@ export default function MarketDashboard() {
     );
   }
 
+  const ErrorMessage = ({ message }: { message: string }) => (
+    <div className="p-4 mb-4 bg-red-100 border border-red-400 text-red-700 rounded relative">
+      <strong className="font-bold">Error:</strong>
+      <span className="block sm:inline"> {message}</span>
+    </div>
+  );
+
   return (
     <div className="p-6">
+      {error && <ErrorMessage message={error} />}
       {/* Market Overview */}
       <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <h2 className="text-xl font-bold mb-4">Market Overview</h2>
