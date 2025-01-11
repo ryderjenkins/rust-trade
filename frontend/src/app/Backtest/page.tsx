@@ -1,14 +1,26 @@
 'use client';
 
-import { useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import {invoke} from '@tauri-apps/api/core';
+import { getVersion } from '@tauri-apps/api/app';
+import { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+interface TauriContext {
+  invoke: unknown;
+  [key: string]: unknown;
+}
+
+declare global {
+  interface Window {
+    __TAURI__: TauriContext | undefined;
+  }
+}
+
 interface BacktestConfig {
-  symbol: string;
-  start_date: string;
-  end_date: string;
+  start_time: string;
+  end_time: string;
   initial_capital: string;
+  symbol: string;
   commission_rate: string;
 }
 
@@ -52,20 +64,6 @@ interface BacktestResponse {
   winning_trades: number;
 }
 
-export default function Backtest() {
-  const [params, setParams] = useState<BacktestParams>({
-    strategy_type: 'SMACross',
-    symbol: 'BTCUSDT',
-    days: 30,
-    initialCapital: '10000',
-    commissionRate: '0.001',
-    shortPeriod: 5,
-    longPeriod: 20,
-  });
-  const [result, setResult] = useState<BacktestResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   // Formatting functions
   const formatPercentage = (value: string) => {
     const num = parseFloat(value);
@@ -87,43 +85,75 @@ export default function Backtest() {
     return num.toFixed(4); // 4 decimal places for commission
   };
 
-  const runBacktest = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // 计算日期范围
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - params.days);
-
-      // 构造后端期望的请求格式
-      const request: BacktestRequest = {
-        strategy_type: params.strategy_type,
-        config: {
-          symbol: params.symbol,
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
-          initial_capital: params.initialCapital,
-          commission_rate: params.commissionRate,
-        },
-        parameters: {
-          short_period: params.shortPeriod.toString(),
-          long_period: params.longPeriod.toString(),
-          position_size_percent: '10',
-        },
-      };
-
-      console.log('Sending request to backend:', request);
-      const response = await invoke<BacktestResponse>('run_backtest', { request });
-      console.log('Raw backtest response:', response);
-      setResult(response);
-    } catch (err) {
-      console.error('Backtest error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to run backtest');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  export default function Backtest() {
+    const [params, setParams] = useState<BacktestParams>({
+      strategy_type: 'SMACross',
+      symbol: 'BTCUSDT',
+      days: 30,
+      initialCapital: '10000',
+      commissionRate: '0.001',
+      shortPeriod: 5,
+      longPeriod: 20,
+    });
+    const [result, setResult] = useState<BacktestResponse | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+  
+    // 2. 使用 useEffect 检查 Tauri 环境
+    useEffect(() => {
+      async function checkTauriEnvironment() {
+        try {
+          // 尝试获取 Tauri 版本，如果成功说明在 Tauri 环境中
+          const version = await getVersion();
+          console.log('Tauri version:', version);
+        } catch (e) {
+          console.error('Not in Tauri environment:', e);
+          setError('Not running in Tauri environment');
+        }
+      }
+  
+      checkTauriEnvironment();
+    }, []);
+  
+    const runBacktest = async () => {
+      setIsLoading(true);
+      setError(null);
+  
+      try {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - params.days);
+  
+        const request = {
+          strategy_type: params.strategy_type,
+          config: {
+            start_time: startDate.toISOString(),
+            end_time: endDate.toISOString(),   
+            symbol: params.symbol,
+            initial_capital: params.initialCapital,
+            commission_rate: params.commissionRate,
+          },
+          parameters: {
+            short_period: params.shortPeriod.toString(),
+            long_period: params.longPeriod.toString(),
+            position_size_percent: '10',
+          },
+        };
+  
+        console.log('Sending request to backend:', request);
+        const response = await invoke<BacktestResponse>('run_backtest', { request });
+        console.log('Raw backtest response:', response);
+        setResult(response);
+      } catch (err) {
+        console.error('Backtest error:', err);
+        const errorMessage = err instanceof Error ? 
+          err.message : 'Failed to run backtest';
+        setError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
 
   return (
     <div className="p-6">
@@ -321,3 +351,4 @@ export default function Backtest() {
     </div>
   );
 }
+
