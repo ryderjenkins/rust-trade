@@ -23,6 +23,7 @@ impl MetricsCalculator {
         equity_points: &[EquityPoint],
         config: &BacktestConfig,
     ) -> Metrics {
+        let _ = config;
         let (profit_trades, loss_trades) = self.analyze_trades(trades);
         let returns = self.calculate_returns(equity_points);
         let (max_drawdown, max_drawdown_duration) = self.calculate_drawdown(equity_points);

@@ -7,7 +7,6 @@
 pub mod data;
 pub mod state;
 pub mod config;
-pub mod commands;
 pub mod backtest;
 pub mod exchange;
 pub mod market_data_collector;

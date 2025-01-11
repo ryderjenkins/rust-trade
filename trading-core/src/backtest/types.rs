@@ -138,11 +138,25 @@ pub struct BacktestRequest {
 }
 
 // 前端响应结构
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Serialize)]
+pub struct TradeResponse {
+    pub timestamp: String,
+    pub symbol: String,
+    pub side: String,
+    pub quantity: String,
+    pub price: String,
+    pub commission: String,
+}
+
+#[derive(Serialize)]
 pub struct BacktestResponse {
-    pub success: bool,
-    pub result: Option<BacktestResult>,
-    pub error: Option<String>,
+    pub total_return: String,
+    pub sharpe_ratio: f64,
+    pub max_drawdown: String,
+    pub win_rate: String,
+    pub total_trades: u32,
+    pub equity_curve: Vec<EquityPoint>,
+    pub trades: Vec<TradeResponse>,
 }
 
 // 策略评分结果（为 NFT 准备）

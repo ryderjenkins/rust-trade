@@ -8,7 +8,7 @@ A quantitative trading system written in Rust
 Tauri 2.0 is a framework for building lightweight, secure desktop applications using web technologies and Rust. It provides a minimal footprint by leveraging the OS's webview instead of bundling a heavy runtime, offering better performance, security, and native API integration.
 
 ## Overview
-rust-trade is a quantitative trading system that combines modern trading strategies with artificial intelligence. This software is released under the GNU General Public License v3. In this basic version, I have defined various interfaces. I will expand the functions I hope to achieve in the next step (allowing customers to run their own strategies in this system and see the results of the strategies. At the same time, mint high-quality strategies into NFTs and put them in the blockchain world)
+rust-trade is a quantitative trading system that combines modern trading strategies with artificial intelligence. This software is released under the GNU General Public License v3.
 
 Copyright (C) 2024 Harrison
 

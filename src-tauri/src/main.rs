@@ -12,7 +12,7 @@
 mod commands;
 mod state;
 
-use commands::{get_market_data, get_latest_price, get_candlestick_data,get_market_overview, run_backtest};
+use commands::run_backtest;
 use state::AppState;
 
 fn main() {
@@ -33,10 +33,6 @@ fn main() {
   tauri::Builder::default()
       .manage(app_state)
       .invoke_handler(tauri::generate_handler![
-          get_market_data,
-          get_latest_price,
-          get_market_overview,
-          get_candlestick_data,
           run_backtest
       ])
       .setup(|app| {

@@ -4,7 +4,22 @@ import { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+interface BacktestConfig {
+  symbol: string;
+  start_date: string;
+  end_date: string;
+  initial_capital: string;
+  commission_rate: string;
+}
+
+interface BacktestRequest {
+  strategy_type: string;
+  config: BacktestConfig;
+  parameters: Record<string, string>;
+}
+
 interface BacktestParams {
+  strategy_type: string;
   symbol: string;
   days: number;
   initialCapital: string;
@@ -13,7 +28,6 @@ interface BacktestParams {
   longPeriod: number;
 }
 
-// 后端返回的交易记录格式
 interface TradeResponse {
   timestamp: string;
   side: 'Buy' | 'Sell';
@@ -23,13 +37,11 @@ interface TradeResponse {
   commission: string;
 }
 
-// 权益曲线数据点格式
 interface EquityPoint {
   timestamp: string;
   value: string;
 }
 
-// 后端返回的完整回测结果格式
 interface BacktestResponse {
   equity_curve: EquityPoint[];
   losing_trades: number;
@@ -42,6 +54,7 @@ interface BacktestResponse {
 
 export default function Backtest() {
   const [params, setParams] = useState<BacktestParams>({
+    strategy_type: 'SMACross',
     symbol: 'BTCUSDT',
     days: 30,
     initialCapital: '10000',
@@ -53,7 +66,7 @@ export default function Backtest() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 添加格式化函数
+  // Formatting functions
   const formatPercentage = (value: string) => {
     const num = parseFloat(value);
     return num.toFixed(2);
@@ -66,27 +79,42 @@ export default function Backtest() {
 
   const formatQuantity = (value: string) => {
     const num = parseFloat(value);
-    return num.toFixed(8); // 保留8位小数，适合加密货币数量
+    return num.toFixed(8); // 8 decimal places for crypto
   };
 
   const formatCommission = (value: string) => {
     const num = parseFloat(value);
-    return num.toFixed(4); // 佣金保留4位小数
+    return num.toFixed(4); // 4 decimal places for commission
   };
 
   const runBacktest = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await invoke<BacktestResponse>('run_backtest', {
-        symbol: params.symbol,
-        days: params.days,
-        initialCapital: params.initialCapital,
-        commissionRate: params.commissionRate,
-        shortPeriod: params.shortPeriod,
-        longPeriod: params.longPeriod,
-      });
+      // 计算日期范围
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - params.days);
 
+      // 构造后端期望的请求格式
+      const request: BacktestRequest = {
+        strategy_type: params.strategy_type,
+        config: {
+          symbol: params.symbol,
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          initial_capital: params.initialCapital,
+          commission_rate: params.commissionRate,
+        },
+        parameters: {
+          short_period: params.shortPeriod.toString(),
+          long_period: params.longPeriod.toString(),
+          position_size_percent: '10',
+        },
+      };
+
+      console.log('Sending request to backend:', request);
+      const response = await invoke<BacktestResponse>('run_backtest', { request });
       console.log('Raw backtest response:', response);
       setResult(response);
     } catch (err) {
@@ -100,11 +128,20 @@ export default function Backtest() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Backtest Strategy</h1>
-      
+
       {/* Parameters Form */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Parameters</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Strategy Type</label>
+            <input
+              type="text"
+              value={params.strategy_type}
+              onChange={(e) => setParams({ ...params, strategy_type: e.target.value })}
+              className="w-full p-2 border rounded"
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1">Symbol</label>
             <input
@@ -210,32 +247,32 @@ export default function Backtest() {
               <h2 className="text-xl font-semibold mb-4">Equity Curve</h2>
               <div className="h-96">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart 
-                    data={result.equity_curve.map(point => ({
+                  <LineChart
+                    data={result.equity_curve.map((point) => ({
                       timestamp: new Date(point.timestamp).getTime(),
-                      value: parseFloat(point.value)
+                      value: parseFloat(point.value),
                     }))}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
+                    <XAxis
                       dataKey="timestamp"
                       type="number"
                       domain={['auto', 'auto']}
                       tickFormatter={(timestamp) => new Date(timestamp).toLocaleDateString()}
                       scale="time"
                     />
-                    <YAxis 
+                    <YAxis
                       domain={['auto', 'auto']}
                       tickFormatter={(value) => `$${value.toFixed(2)}`}
                     />
-                    <Tooltip 
+                    <Tooltip
                       labelFormatter={(timestamp) => new Date(timestamp).toLocaleString()}
                       formatter={(value: number) => [`$${value.toFixed(2)}`, 'Portfolio Value']}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="value" 
-                      stroke="#2563eb" 
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#2563eb"
                       dot={false}
                       isAnimationActive={false}
                     />
