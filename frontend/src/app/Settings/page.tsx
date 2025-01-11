@@ -1,3 +1,3 @@
-export default function Backtest() {
-    return <div>Backtest Page</div>;
+export default function Settings() {
+    return <div>Settings Page</div>;
   }

@@ -28,7 +28,9 @@ cargo tauri build
 
 ## Example
 
-![result](assets/version2.png)
+![result](assets/version2NFT.png)
+
+![result](assets/version2Strategy.png)
 
 ## Required Environment Variables
 ```bash
