@@ -28,33 +28,21 @@ cargo tauri build
 
 ## Example
 
-![result](assets/version1.png)
+![result](assets/version2.png)
 
 ## Required Environment Variables
 ```bash
 DATABASE_URL=postgresql://user:password@localhost/dbname
-OPENAI_KEY=your-openai-api-key
 ```
 
 ## Development Roadmap
 
-1. **AI Integration Improvements**
-   - Implement response caching
-   - Add retry mechanism
-   - Improve async handling
-   - Enhance risk management
-
-2. **Strategy Enhancements**
-   - Add more technical indicators
-   - Implement hybrid strategies
-   - Improve position sizing
-   - Add performance metrics
-
-3. **System Optimization**
-   - Optimize database queries
-   - Improve error handling
-   - Add monitoring system
-   - Implement data validation
+1. Add more strategy templates
+2. Implement strategy scoring system
+3. Develop strategy market function
+4. Add real trading support
+5. Optimize performance indicator calculation
+6. Add more data analysis tools
 
 ## License
 This program is free software: you can redistribute it and/or modify
