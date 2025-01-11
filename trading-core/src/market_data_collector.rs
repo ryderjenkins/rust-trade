@@ -1,5 +1,5 @@
 use crate::data::market_data::{MarketDataManager, MarketDataPoint};
-use crate::services::exchange::types::{Exchange, ExchangeError};
+use crate::exchange::types::{Exchange, ExchangeError};
 use tokio::sync::{broadcast, mpsc};
 use tokio::time::{sleep, Duration};
 use tracing::{error, info, warn};
@@ -115,7 +115,7 @@ impl MarketDataCollector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::services::exchange::binance::BinanceSpot;
+    use crate::exchange::binance::BinanceSpot;
     use sqlx::postgres::PgPoolOptions;
     use std::time::Duration;
     use dotenv::dotenv;

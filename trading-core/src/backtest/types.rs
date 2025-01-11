@@ -1,9 +1,11 @@
-// backtest/types.rs
+// trading-core/src/backtest/types.rs
+
+use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
+// 基础配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BacktestConfig {
     pub start_time: DateTime<Utc>,
@@ -13,32 +15,32 @@ pub struct BacktestConfig {
     pub commission_rate: Decimal,
 }
 
-#[derive(Debug, Clone)]
-pub struct Position {
-    pub symbol: String,
-    pub quantity: Decimal,
-    pub average_entry_price: Decimal,
+// 策略类型
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum StrategyType {
+    SMACross,
+    RSI,
+    MACD,
+    BollingerBands,
+    Custom(String),
 }
 
-#[derive(Debug, Clone)]
-pub struct Portfolio {
-    pub cash: Decimal,
-    pub positions: HashMap<String, Position>,
-    pub total_value: Decimal,
-}
-
-#[derive(Debug, Clone)]
+// 订单类型
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum OrderType {
     Market,
+    Limit(Decimal),
 }
 
-#[derive(Debug, Clone,PartialEq)]
+// 订单方向
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum OrderSide {
     Buy,
     Sell,
 }
 
-#[derive(Debug, Clone)]
+// 订单结构
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Order {
     pub symbol: String,
     pub order_type: OrderType,
@@ -47,7 +49,8 @@ pub struct Order {
     pub timestamp: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone)]
+// 交易结构
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Trade {
     pub symbol: String,
     pub side: OrderSide,
@@ -57,46 +60,123 @@ pub struct Trade {
     pub commission: Decimal,
 }
 
-#[derive(Debug, Clone)]
-pub struct BacktestResult {
-    pub total_return: Decimal,
-    pub total_trades: u32,
-    pub winning_trades: u32,
-    pub losing_trades: u32,
-    pub max_drawdown: Decimal,
-    pub trades: Vec<Trade>,
+// 持仓信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Position {
+    pub symbol: String,
+    pub quantity: Decimal,
+    pub average_entry_price: Decimal,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+// 投资组合
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Portfolio {
+    pub cash: Decimal,
+    pub positions: HashMap<String, Position>,
+    pub total_value: Decimal,
+}
+
+// 权益点
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EquityPoint {
     pub timestamp: String,
     pub value: String,
 }
 
-#[derive(serde::Serialize)]
-pub struct MarketOverview {
-    pub price: f64,
-    pub price_change_24h: f64,
-    pub volume_24h: f64,
-}
-
-#[derive(serde::Serialize)]
-pub struct BacktestResponse {
-    pub total_return: String,
-    pub total_trades: u32,
-    pub winning_trades: u32,
-    pub losing_trades: u32,
-    pub max_drawdown: String,
-    pub trades: Vec<TradeResponse>,
+// 回测结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BacktestResult {
+    pub strategy_type: StrategyType,
+    pub parameters: HashMap<String, String>,
+    pub metrics: Metrics,
+    pub trades: Vec<Trade>,
     pub equity_curve: Vec<EquityPoint>,
 }
 
-#[derive(serde::Serialize)]
-pub struct TradeResponse {
-    pub timestamp: String,
-    pub side: String,
+// 性能指标
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Metrics {
+    // 基础指标
+    pub total_return: Decimal,
+    pub total_trades: u32,
+    pub winning_trades: u32,
+    pub losing_trades: u32,
+    pub win_rate: Decimal,
+    pub profit_factor: Decimal,
+    
+    // 风险指标
+    pub sharpe_ratio: f64,
+    pub sortino_ratio: f64,
+    pub max_drawdown: Decimal,
+    pub max_drawdown_duration: i64,  // 以秒为单位
+    
+    // 收益指标
+    pub avg_profit_per_trade: Decimal,
+    pub avg_winning_trade: Decimal,
+    pub avg_losing_trade: Decimal,
+    pub largest_winning_trade: Decimal,
+    pub largest_losing_trade: Decimal,
+    
+    // 交易指标
+    pub avg_trade_duration: i64,     // 以秒为单位
+    pub profit_per_month: Decimal,
+    pub annual_return: Decimal,
+    pub monthly_sharpe: f64,
+    
+    // 额外统计
+    pub total_commission: Decimal,
+    pub total_volume: Decimal,
+    pub avg_position_size: Decimal,
+}
+
+// 前端请求结构
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BacktestRequest {
+    pub strategy_type: StrategyType,
+    pub parameters: HashMap<String, String>,
+    pub config: BacktestConfig,
+}
+
+// 前端响应结构
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BacktestResponse {
+    pub success: bool,
+    pub result: Option<BacktestResult>,
+    pub error: Option<String>,
+}
+
+// 策略评分结果（为 NFT 准备）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StrategyScore {
+    pub total_score: u32,
+    pub return_score: u32,
+    pub risk_score: u32,
+    pub consistency_score: u32,
+    pub uniqueness_score: u32,
+    pub rating: StrategyRating,
+}
+
+// 策略评级（为 NFT 准备）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum StrategyRating {
+    Legendary,
+    Epic,
+    Rare,
+    Common,
+}
+
+// NFT 元数据（为 NFT 准备）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StrategyNFTMetadata {
+    pub strategy_id: String,
+    pub name: String,
+    pub description: String,
+    pub creator: String,
+    pub creation_date: DateTime<Utc>,
+    pub metrics: Metrics,
+    pub score: StrategyScore,
+    pub parameters: HashMap<String, String>,
+    pub trading_period: String,
     pub symbol: String,
-    pub quantity: String,
-    pub price: String,
-    pub commission: String,
+    pub image_url: Option<String>,
 }

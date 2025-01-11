@@ -44,7 +44,7 @@ pub struct Ticker {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Trade {
+pub struct ExchangeTrade {
     pub symbol: String,
     pub timestamp: DateTime<Utc>,
     pub price: Decimal,
@@ -66,7 +66,7 @@ pub trait Exchange: Send + Sync {
     async fn get_orderbook(&self, symbol: &str, limit: u32) -> Result<OrderBook, ExchangeError>;
     
     /// 获取最近的成交记录
-    async fn get_recent_trades(&self, symbol: &str, limit: u32) -> Result<Vec<Trade>, ExchangeError>;
+    async fn get_recent_trades(&self, symbol: &str, limit: u32) -> Result<Vec<ExchangeTrade>, ExchangeError>;
     
     /// 获取K线数据
     async fn get_klines(

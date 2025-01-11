@@ -142,7 +142,7 @@ impl Exchange for BinanceSpot {
         })
     }
     
-    async fn get_recent_trades(&self, symbol: &str, limit: u32) -> Result<Vec<Trade>, ExchangeError> {
+    async fn get_recent_trades(&self, symbol: &str, limit: u32) -> Result<Vec<ExchangeTrade>, ExchangeError> {
         let params = vec![
             ("symbol", symbol.to_string()),
             ("limit", limit.to_string()),
@@ -154,7 +154,7 @@ impl Exchange for BinanceSpot {
             .ok_or_else(|| ExchangeError::ApiError("Invalid trades data".to_string()))?
             .iter()
             .map(|trade| {
-                Ok(Trade {
+                Ok(ExchangeTrade {
                     symbol: symbol.to_string(),
                     timestamp: Utc.timestamp_millis_opt(trade["time"].as_i64().unwrap()).unwrap(),
                     price: Self::parse_decimal(trade["price"].as_str().unwrap())?,

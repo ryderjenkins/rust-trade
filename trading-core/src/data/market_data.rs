@@ -63,7 +63,7 @@ pub struct TickData {
 
 #[derive(Clone)]
 pub struct MarketDataManager {
-    pool: PgPool,
+    pub pool: PgPool,
 }
 
 impl MarketDataManager {

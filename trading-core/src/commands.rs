@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::state::AppState;
+
 #[derive(Serialize)]
 pub struct MarketOverview {
     pub price: f64,
