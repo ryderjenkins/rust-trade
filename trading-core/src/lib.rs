@@ -5,7 +5,10 @@
 // GNU GPL v3 or later. See the LICENSE file for details.
 
 pub mod data;
-pub mod services;
+pub mod tests;
+pub mod state;
 pub mod config;
 pub mod backtest;
-pub mod ai;
+pub mod exchange;
+pub mod blockchain;
+pub mod market_data_collector;

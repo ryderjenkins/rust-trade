@@ -8,7 +8,7 @@ A quantitative trading system written in Rust
 Tauri 2.0 is a framework for building lightweight, secure desktop applications using web technologies and Rust. It provides a minimal footprint by leveraging the OS's webview instead of bundling a heavy runtime, offering better performance, security, and native API integration.
 
 ## Overview
-rust-trade is a quantitative trading system that combines modern trading strategies with artificial intelligence. This software is released under the GNU General Public License v3. In this basic version, I have defined various interfaces. I will expand the functions I hope to achieve in the next step (allowing customers to run their own strategies in this system and see the results of the strategies. At the same time, mint high-quality strategies into NFTs and put them in the blockchain world)
+rust-trade is a quantitative trading system that combines modern trading strategies with artificial intelligence. This software is released under the GNU General Public License v3.
 
 Copyright (C) 2024 Harrison
 
@@ -28,33 +28,23 @@ cargo tauri build
 
 ## Example
 
-![result](assets/version1.png)
+![result](assets/version2NFT.png)
+
+![result](assets/version2Strategy.png)
 
 ## Required Environment Variables
 ```bash
 DATABASE_URL=postgresql://user:password@localhost/dbname
-OPENAI_KEY=your-openai-api-key
 ```
 
 ## Development Roadmap
 
-1. **AI Integration Improvements**
-   - Implement response caching
-   - Add retry mechanism
-   - Improve async handling
-   - Enhance risk management
-
-2. **Strategy Enhancements**
-   - Add more technical indicators
-   - Implement hybrid strategies
-   - Improve position sizing
-   - Add performance metrics
-
-3. **System Optimization**
-   - Optimize database queries
-   - Improve error handling
-   - Add monitoring system
-   - Implement data validation
+1. Add more strategy templates
+2. Implement strategy scoring system
+3. Develop strategy market function
+4. Add real trading support
+5. Optimize performance indicator calculation
+6. Add more data analysis tools
 
 ## License
 This program is free software: you can redistribute it and/or modify

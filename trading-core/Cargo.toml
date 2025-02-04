@@ -23,17 +23,13 @@ anyhow = "1.0"
 thiserror = "1.0"
 rust_decimal = { version = "1.32", features = ["serde"] }
 async-trait = "0.1"
-axum = "0.7"
-tower = "0.4"
-ta = "0.5" 
-async-openai = "0.13"
 clap = { version = "4.4", features = ["derive"] }
-tower-http = { version = "0.5", features = ["trace"] }
-tauri = { version = "2.0.0-beta.9", features = [] }
 
-[build-dependencies]
-tauri-build = { version = "2.0.0-beta.9", features = [] }
+# 区块链相关
+# 链交互工具
+subxt = { version = "0.32.1", features = ["substrate-compat"] }
+codec = { package = "parity-scale-codec", version = "3.6.5", features = ["derive"] }
 
-[features]
-default = [ "custom-protocol" ]
-custom-protocol = [ "tauri/custom-protocol" ]
+# 账户和签名
+sp-core = "24.0.0"
+sp-keyring = "24.0.0"
